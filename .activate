@@ -1,0 +1,3 @@
+eval $(gopkgr --goenv-function)
+goenv activate $(pwd)
+

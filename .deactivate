@@ -1,0 +1,2 @@
+unset -f goenv
+unset -f deactivate
