@@ -1,3 +1,4 @@
 eval $(gopkgr --goenv-function)
 goenv activate $(pwd)
+test -d src || ( mkdir -p src/github.com/timtadh/ && cd src/github.com/timtadh && ln -s ../../../ lexmachine && cd - )
 
