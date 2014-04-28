@@ -1,0 +1,34 @@
+Regex : Alternation
+
+Alternation : Choice Alternation'
+
+Alternation' : '|' Choice Alternation'
+             : e
+
+Choice : AtomicOp Choice'
+
+Choice' : AtomicOp Choice'
+        | e
+
+AtomicOp : Atomic
+         | Atomic Op
+
+Atomic : Concat
+       | Group
+
+Op : '+'
+   | '*'
+   | '?'
+
+Group : '(' Alternation ')'
+
+Concat : Char Concat'
+
+Concat' : Char Concat'
+        | e
+
+Char : CHAR
+     | CharRange
+
+CharRange : '[' CHAR '-' CHAR ']'
+
