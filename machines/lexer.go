@@ -16,6 +16,13 @@ type Match struct {
 }
 
 func (self *Match) Equals(other *Match) bool {
+	if self == nil && other == nil {
+		return true
+	} else if self == nil {
+		return false
+	} else if other == nil {
+		return false
+	}
 	return self.PC == other.PC && bytes.Equal(self.Bytes, other.Bytes)
 }
 

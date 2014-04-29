@@ -9,18 +9,25 @@ type AST interface{
     String() string
 }
 
+type Match struct {
+    AST
+}
+
+func (self *Match) String() string {
+    return fmt.Sprintf("(Match %v)", self.AST)
+}
+
 type Alternation struct {
-    Alternatives []AST
+    A AST
+    B AST
+}
+
+func NewMatch(ast AST) AST {
+    return &Match{ast}
 }
 
 func (self *Alternation) String() string {
-    s := "(Alternation "
-    alts := make([]string, 0, len(self.Alternatives))
-    for _, a := range self.Alternatives {
-        alts = append(alts, a.String())
-    }
-    s += strings.Join(alts, ", ") + ")"
-    return s
+    return fmt.Sprintf("(Alternation %v, %v)", self.A, self.B)
 }
 
 type Star struct {
@@ -89,7 +96,7 @@ func NewAlternation(choice, alternation AST) AST {
     if alternation == nil {
         return choice
     }
-    return &Alternation{[]AST{choice, alternation}}
+    return &Alternation{choice, alternation}
 }
 
 func NewChoice(atomic_op, choice AST) AST {

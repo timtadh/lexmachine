@@ -42,7 +42,7 @@ func regex(text []byte) (AST, error) {
     } else if i != len(text) {
         return nil, fmt.Errorf("unconsumed input")
     }
-    return ast, nil
+    return NewMatch(ast), nil
 }
 
 func alternation(text []byte, i int) (int, AST, error) {

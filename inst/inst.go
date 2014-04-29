@@ -28,7 +28,11 @@ func New(op uint8, x, y uint32) *Inst {
 func (self Inst) String() (s string) {
 	switch self.Op {
 	case CHAR:
-		s = fmt.Sprintf("CHAR   %d (%s), %d (%s)", self.X, string([]byte{byte(self.X)}), self.Y, string([]byte{byte(self.Y)}))
+		if self.X == self.Y {
+			s = fmt.Sprintf("CHAR   %d (%s)", self.X, string([]byte{byte(self.X)}))
+		} else {
+			s = fmt.Sprintf("CHAR   %d (%s), %d (%s)", self.X, string([]byte{byte(self.X)}), self.Y, string([]byte{byte(self.Y)}))
+		}
 	case SPLIT:
 		s = fmt.Sprintf("SPLIT  %v, %v", self.X, self.Y)
 	case JMP:
