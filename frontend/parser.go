@@ -183,12 +183,12 @@ func char(text []byte, i int) (int, AST, error) {
     if err == nil {
         return i, C, nil
     }
-    i, R, err := CharRange(text, i)
+    i, R, err := charRange(text, i)
     if err == nil {
         return i, R, nil
     }
     return i, nil, fmt.Errorf(
-        "Expected a CHAR or CharRange at %d", i)
+        "Expected a CHAR or charRange at %d", i)
 }
 
 func CHAR(text []byte, i int) (int, AST, error) {
@@ -211,7 +211,7 @@ func CHAR(text []byte, i int) (int, AST, error) {
     }
 }
 
-func CharRange(text []byte, i int) (int, AST, error) {
+func charRange(text []byte, i int) (int, AST, error) {
     i, err := match(text, i, '[')
     if err != nil {
         return i, nil, err

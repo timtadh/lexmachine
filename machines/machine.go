@@ -30,7 +30,7 @@ func (self Match) String() string {
 	return fmt.Sprintf("<Match %v '%v'>", self.PC, string(self.Bytes))
 }
 
-type Scanner func()(*Match, error, Scanner)
+type Scanner func(int)(int, *Match, error, Scanner)
 
 func LexerEngine(program InstSlice, text []byte) Scanner {
 	var cqueue, nqueue *queue.Queue = queue.New(), queue.New()
@@ -38,13 +38,12 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 	match_tc := -1
 	start_tc := 0
 	cqueue.Push(0)
-	tc := 0
 	done := false
 
 	var scan Scanner
-	scan = func() (*Match, error, Scanner) {
+	scan = func(tc int) (int, *Match, error, Scanner) {
 		if done {
-			return nil, nil, nil
+			return tc, nil, nil, nil
 		}
 		for ; tc <= len(text); tc++ {
 			for !cqueue.Empty() {
@@ -81,7 +80,7 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 				cqueue.Push(0)
 				start_tc = tc
 				match_pc = -1
-				return match, nil, scan
+				return tc, match, nil, scan
 			}
 		}
 		if match_tc != len(text) {
@@ -89,9 +88,9 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 			if match_tc == -1 {
 				match_tc = 0
 			}
-			return nil, fmt.Errorf("Unconsumed text, %d, '%s'", match_tc, text[match_tc:]), scan
+			return tc, nil, fmt.Errorf("Unconsumed text, %d, '%s'", match_tc, text[match_tc:]), scan
 		} else {
-			return nil, nil, nil
+			return tc, nil, nil, nil
 		}
 	}
 	return scan

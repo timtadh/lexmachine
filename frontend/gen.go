@@ -25,6 +25,8 @@ func Generate(ast AST) (inst.InstSlice, error) {
 
 func (self *generator) gen(ast AST) (fill []*uint32) {
 	switch n := ast.(type) {
+	case *AltMatch:
+		fill = self.altMatch(n)
 	case *Match:
 		fill = self.match(n)
 	case *Alternation:
@@ -49,6 +51,16 @@ func (self *generator) dofill(fill []*uint32) {
 	for _, jmp := range fill {
 		*jmp = uint32(len(self.program))
 	}
+}
+
+func (self *generator) altMatch(a *AltMatch) []*uint32 {
+	split := inst.New(inst.SPLIT, 0, 0)
+	self.program = append(self.program, split)
+	split.X = uint32(len(self.program))
+	self.gen(a.A)
+	split.Y = uint32(len(self.program))
+	self.gen(a.B)
+	return nil
 }
 
 func (self *generator) match(m *Match) []*uint32 {

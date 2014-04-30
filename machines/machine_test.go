@@ -34,7 +34,7 @@ func TestLexerMatch(t *testing.T) {
 		Match{16, []byte("ababcbcbb")},
 	}
 	i := 0
-	for m, err, scan := LexerEngine(program, text)(); scan != nil; m, err, scan = scan() {
+	for tc, m, err, scan := LexerEngine(program, text)(0); scan != nil; tc, m, err, scan = scan(tc) {
 		t.Log(m)
 		if err != nil {
 			t.Error(err)
@@ -76,7 +76,7 @@ func TestLexerNoMatch(t *testing.T) {
 	t.Log(string(text))
 	t.Log(program)
 
-	for m, err, scan := LexerEngine(program, text)(); scan != nil; m, err, scan = scan() {
+	for tc, m, err, scan := LexerEngine(program, text)(0); scan != nil; tc, m, err, scan = scan(tc) {
 		if err == nil || !strings.HasPrefix(err.Error(), "Unconsumed text") {
 			t.Error("no error!", m, err)
 		}
@@ -114,7 +114,7 @@ func TestLexerThreeStrings(t *testing.T) {
 	}
 
 	i := 0
-	for m, err, scan := LexerEngine(program, text)(); scan != nil; m, err, scan = scan() {
+	for tc, m, err, scan := LexerEngine(program, text)(0); scan != nil; tc, m, err, scan = scan(tc) {
 		t.Log(m)
 		if err != nil {
 			t.Error(err)

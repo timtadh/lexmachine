@@ -24,7 +24,7 @@ func t_match(program inst.InstSlice, text string, t *testing.T) {
 	expected := []machines.Match{machines.Match{len(program)-1, []byte(text)}}
 	i := 0
 	scan := machines.LexerEngine(program, []byte(text))
-	for m, err, scan := scan(); scan != nil; m, err, scan = scan() {
+	for tc, m, err, scan := scan(0); scan != nil; tc, m, err, scan = scan(tc) {
 		t.Log("match", m)
 		if err != nil {
 			t.Error("error", err)
@@ -148,5 +148,28 @@ func TestParseConcatAltStar(t *testing.T) {
 	t_match(program, "AAACC", t)
 	t_match(program, "AAACCFFF", t)
 	t_match(program, "CAACCGEDFX", t)
+}
+
+func TestIdent(t *testing.T) {
+	ast, err := Parse([]byte("([a-z]|[A-Z])([a-z]|[A-Z]|[0-9]|_)*"))
+	if err != nil {
+		t.Error(err)
+	}
+	parsed := "(Match (Concat (Alternation (Range 97 122), (Range 65 90)), (* (Alternation (Range 97 122), (Alternation (Range 65 90), (Alternation (Range 48 57), (Character _)))))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, "X", t)
+	t_match(program, "asdfY0923", t)
+	t_match(program, "A", t)
+	t_match(program, "AAA", t)
+	t_match(program, "AAACC", t)
 }
 
