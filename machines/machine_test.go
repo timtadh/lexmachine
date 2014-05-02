@@ -127,3 +127,73 @@ func TestLexerThreeStrings(t *testing.T) {
 	}
 }
 
+func TestLexerRestart(t *testing.T) {
+	var text []byte = []byte("struct  *")
+	program := make(inst.InstSlice, 30)
+
+	program[0] = inst.New(inst.SPLIT, 2, 1)  // go to 1 or 2/3
+	program[1] = inst.New(inst.SPLIT, 9, 14) // go to 2 or 3
+	program[2] = inst.New(inst.CHAR, 's', 's')
+	program[3] = inst.New(inst.CHAR, 't', 't')
+	program[4] = inst.New(inst.CHAR, 'r', 'r')
+	program[5] = inst.New(inst.CHAR, 'u', 'u')
+	program[6] = inst.New(inst.CHAR, 'c', 'c')
+	program[7] = inst.New(inst.CHAR, 't', 't')
+	program[8] = inst.New(inst.MATCH, 0, 0)
+	program[9] = inst.New(inst.SPLIT, 10, 12)
+	program[10] = inst.New(inst.CHAR, ' ', ' ')
+	program[11] = inst.New(inst.JMP, 9, 0)
+	program[12] = inst.New(inst.CHAR, ' ', ' ')
+	program[13] = inst.New(inst.MATCH, 0, 0)
+	program[14] = inst.New(inst.CHAR, '*', '*')
+	program[15] = inst.New(inst.MATCH, 0, 0)
+
+	t.Log(string(text))
+	t.Log(len(text))
+	t.Log(program)
+	expected := []Match{
+		Match{8, 0, 1, 1, []byte("struct")},
+		Match{13, 6, 1, 7, []byte("  ")},
+		Match{15, 8, 1, 9, []byte("*")},
+	}
+
+	check := func(m *Match, i int, err error) {
+		t.Log(m)
+		if err != nil {
+			t.Error(err)
+		} else if !m.Equals(&expected[i]) {
+			t.Error(m, expected[i])
+		}
+	}
+
+	i := 0
+	tc, m, err, scan := LexerEngine(program, text)(0)
+	check(m, i, err)
+	i++
+
+	tc, m, err, scan = scan(tc)
+	check(m, i, err)
+	i--
+
+	tc, m, err, scan = scan(tc-8) // backtrack
+	check(m, i, err)
+	i++
+
+	tc, m, err, scan = scan(tc)
+	check(m, i, err)
+	i++
+
+	tc, m, err, scan = scan(tc)
+	check(m, i, err)
+	i++
+
+	_, _, _, scan = scan(tc)
+	if scan != nil {
+		t.Error("scan should have ended")
+	}
+	if i != len(expected) {
+		t.Error("unconsumed matches", expected[i-1:])
+	}
+}
+
+
