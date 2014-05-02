@@ -159,7 +159,7 @@ func TestLexerRestart(t *testing.T) {
 	t.Log(program)
 	expected := []Match{
 		Match{8, 0, 1, 1, []byte("struct")},
-		Match{19, 6, 1, 7, []byte("\n  ")},
+		Match{19, 6, 2, 0, []byte("\n  ")},
 		Match{21, 9, 2, 3, []byte("*")},
 	}
 
@@ -179,13 +179,25 @@ func TestLexerRestart(t *testing.T) {
 
 	tc, m, err, scan = scan(tc)
 	check(m, i, err)
-	i--
+	i++
 
-	tc, m, err, scan = scan(tc-9) // backtrack
+	tc, m, err, scan = scan(tc)
+	check(m, i, err)
+	i -= 2
+
+	tc, m, err, scan = scan(tc-10) // backtrack
 	check(m, i, err)
 	i++
 
 	tc, m, err, scan = scan(tc)
+	check(m, i, err)
+	i++
+
+	tc, m, err, scan = scan(tc)
+	check(m, i, err)
+	i--
+
+	tc, m, err, scan = scan(tc-4)
 	check(m, i, err)
 	i++
 

@@ -2,6 +2,8 @@ package lexmachine
 
 import (
 	"fmt"
+	"reflect"
+	"bytes"
 )
 
 import (
@@ -19,11 +21,27 @@ type Token struct {
 	Column int
 }
 
+func (self *Token) Equals(other *Token) bool {
+	if self == nil && other == nil {
+		return true
+	} else if self == nil {
+		return false
+	} else if other == nil {
+		return false
+	}
+	return self.TC == other.TC && 
+			self.Line == other.Line &&
+			self.Column == other.Column &&
+			bytes.Equal(self.Lexeme, other.Lexeme) &&
+			self.Type == other.Type &&
+			reflect.DeepEqual(self.Value, other.Value)
+}
+
 func (self *Token) String() string {
 	return fmt.Sprintf("%d %v (%d, %d)", self.Type, self.Value, self.Line, self.Column)
 }
 
-type Action func(scan *Scanner, match []byte) (*Token, error)
+type Action func(scan *Scanner, match *machines.Match) (*Token, error)
 
 type Pattern struct {
 	regex []byte
@@ -60,7 +78,7 @@ func (self *Scanner) Next() (tok interface{}, err error, eof bool) {
 	self.column = match.Column
 
 	pattern := self.lexer.patterns[self.lexer.matches[match.PC]]
-	token, err := pattern.action(self, match.Bytes)
+	token, err := pattern.action(self, match)
 	if err != nil {
 		return nil, err, false
 	} else if token == nil {

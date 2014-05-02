@@ -20,7 +20,7 @@ type Match struct {
 
 func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
 	if tc < prev_tc {
-		for i := prev_tc-1; i >= tc; i-- {
+		for i := prev_tc; i > tc; i-- {
 			if text[i] == '\n' {
 				line -= 1
 			}
@@ -34,12 +34,19 @@ func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
 		}
 		return line, col
 	}
-	for i := prev_tc; i < tc; i++ {
+	for i := prev_tc+1; i <= tc; i++ {
 		if text[i] == '\n' {
 			col = 0
 			line += 1
+		} else {
+			col += 1
 		}
-		col += 1
+	}
+	if prev_tc == tc && tc == 0 && tc < len(text) {
+		if text[tc] == '\n' {
+			line += 1
+			col -= 1
+		}
 	}
 	return line, col
 }
