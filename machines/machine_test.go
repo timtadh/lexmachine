@@ -128,11 +128,11 @@ func TestLexerThreeStrings(t *testing.T) {
 }
 
 func TestLexerRestart(t *testing.T) {
-	var text []byte = []byte("struct  *")
+	var text []byte = []byte("struct\n  *")
 	program := make(inst.InstSlice, 30)
 
 	program[0] = inst.New(inst.SPLIT, 2, 1)  // go to 1 or 2/3
-	program[1] = inst.New(inst.SPLIT, 9, 14) // go to 2 or 3
+	program[1] = inst.New(inst.SPLIT, 9, 20) // go to 2 or 3
 	program[2] = inst.New(inst.CHAR, 's', 's')
 	program[3] = inst.New(inst.CHAR, 't', 't')
 	program[4] = inst.New(inst.CHAR, 'r', 'r')
@@ -142,19 +142,25 @@ func TestLexerRestart(t *testing.T) {
 	program[8] = inst.New(inst.MATCH, 0, 0)
 	program[9] = inst.New(inst.SPLIT, 10, 12)
 	program[10] = inst.New(inst.CHAR, ' ', ' ')
-	program[11] = inst.New(inst.JMP, 9, 0)
-	program[12] = inst.New(inst.CHAR, ' ', ' ')
-	program[13] = inst.New(inst.MATCH, 0, 0)
-	program[14] = inst.New(inst.CHAR, '*', '*')
-	program[15] = inst.New(inst.MATCH, 0, 0)
+	program[11] = inst.New(inst.JMP, 13, 0)
+	program[12] = inst.New(inst.CHAR, '\n', '\n')
+	program[13] = inst.New(inst.SPLIT, 14, 19)
+	program[14] = inst.New(inst.SPLIT, 15, 17)
+	program[15] = inst.New(inst.CHAR, ' ', ' ')
+	program[16] = inst.New(inst.JMP, 18, 0)
+	program[17] = inst.New(inst.CHAR, '\n', '\n')
+	program[18] = inst.New(inst.JMP, 13, 0)
+	program[19] = inst.New(inst.MATCH, 0, 0)
+	program[20] = inst.New(inst.CHAR, '*', '*')
+	program[21] = inst.New(inst.MATCH, 0, 0)
 
 	t.Log(string(text))
 	t.Log(len(text))
 	t.Log(program)
 	expected := []Match{
 		Match{8, 0, 1, 1, []byte("struct")},
-		Match{13, 6, 1, 7, []byte("  ")},
-		Match{15, 8, 1, 9, []byte("*")},
+		Match{19, 6, 1, 7, []byte("\n  ")},
+		Match{21, 9, 2, 3, []byte("*")},
 	}
 
 	check := func(m *Match, i int, err error) {
@@ -175,7 +181,7 @@ func TestLexerRestart(t *testing.T) {
 	check(m, i, err)
 	i--
 
-	tc, m, err, scan = scan(tc-8) // backtrack
+	tc, m, err, scan = scan(tc-9) // backtrack
 	check(m, i, err)
 	i++
 
