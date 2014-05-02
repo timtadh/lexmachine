@@ -115,10 +115,6 @@ func NewAlternation(choice, alternation AST) AST {
 	return &Alternation{choice, alternation}
 }
 
-func NewChoice(atomic_op, choice AST) AST {
-	return NewConcat(atomic_op, choice)
-}
-
 func NewApplyOp(op, atomic AST) AST {
 	switch o := op.(type) {
 	case *Star:

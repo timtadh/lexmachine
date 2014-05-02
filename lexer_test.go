@@ -56,6 +56,13 @@ func TestSimple(t *testing.T) {
 		},
 	)
 	lexer.Add(
+		[]byte("//[^\n]*\n"),
+		func(scan *Scanner, match *machines.Match)(interface{}, error) {
+			// skip white space
+			return nil, nil
+		},
+	)
+	lexer.Add(
 		[]byte("/\\*"),
 		func(scan *Scanner, match *machines.Match)(interface{}, error) {
 			for tc := scan.TC; tc < len(scan.Text); tc++ {
@@ -80,6 +87,7 @@ func TestSimple(t *testing.T) {
 		print name
 		print fred
 		name =12
+		// asdf comment
 		/*awef  oiwe
 		 ooiwje \*/ weoi
 		 weoi*/ printname = 13
@@ -111,11 +119,11 @@ func TestSimple(t *testing.T) {
 
 	i := 0
 	for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
-		tok := tk.(*Token)
-		t.Log(tok)
 		if err != nil {
 			t.Fatal(err)
 		}
+		tok := tk.(*Token)
+		t.Log(tok)
 		if tok.Equals(expected[i]) {
 			t.Errorf("got wrong token got %v, expected %v", tok, expected[i])
 		}

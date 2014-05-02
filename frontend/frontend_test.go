@@ -12,7 +12,7 @@ func TestParse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	parsed := "(Match (Alternation (Concat (Concat (Character a), (Character b)), (? (Alternation (Character a), (Alternation (Character c), (Character d)))), (* (Concat (Character w), (Character e))), (+ (Concat (Character \\), (Character [), (Character .), (Range 0 255), (Range 115 102)))), (Concat (Character q), (Character y), (Character x))))"
+	parsed := "(Match (Alternation (Concat (Character a), (Character b), (? (Alternation (Character a), (Alternation (Character c), (Character d)))), (Character w), (* (Character e)), (Character \\), (Character [), (Character .), (Range 0 255), (+ (Range 115 102))), (Concat (Character q), (Character y), (Character x))))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -171,5 +171,25 @@ func TestIdent(t *testing.T) {
 	t_match(program, "A", t)
 	t_match(program, "AAA", t)
 	t_match(program, "AAACC", t)
+}
+
+
+func TestLineComment(t *testing.T) {
+	ast, err := Parse([]byte("//[^\n]*\n"))
+	if err != nil {
+		t.Error(err)
+	}
+	parsed := "(Match (Concat (Character /), (Character /), (* (Alternation (Range 0 9), (Range 11 255))), (Character \n)))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, "// adfawefawe awe \n", t)
 }
 

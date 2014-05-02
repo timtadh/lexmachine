@@ -139,7 +139,8 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 			if match_tc == -1 {
 				match_tc = 0
 			}
-			return tc, nil, fmt.Errorf("Unconsumed text, %d, '%s'", match_tc, text[match_tc:]), scan
+			line, col = compute_lc(text, 0, match_tc, 1, 1)
+			return tc, nil, fmt.Errorf("Unconsumed text, %d (%d, %d), '%s'", match_tc, line, col, text[match_tc:]), scan
 		} else {
 			return tc, nil, nil, nil
 		}
