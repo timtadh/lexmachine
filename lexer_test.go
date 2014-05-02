@@ -18,19 +18,19 @@ func TestSimple(t *testing.T) {
 	lexer.Add(
 		[]byte("print"),
 		func(scan *Scanner, match []byte)(*Token, error) {
-			return &Token{PRINT, nil, match}, nil
+			return scan.Token(PRINT, nil, match), nil
 		},
 	)
 	lexer.Add(
 		[]byte("([a-z]|[A-Z])([a-z]|[A-Z]|[0-9]|_)*"),
 		func(scan *Scanner, match []byte)(*Token, error) {
-			return &Token{NAME, string(match), match}, nil
+			return scan.Token(NAME, string(match), match), nil
 		},
 	)
 	lexer.Add(
 		[]byte("="),
 		func(scan *Scanner, match []byte)(*Token, error) {
-			return &Token{EQUALS, nil, match}, nil
+			return scan.Token(EQUALS, nil, match), nil
 		},
 	)
 	lexer.Add(
@@ -40,7 +40,7 @@ func TestSimple(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
-			return &Token{NUMBER, i, match}, nil
+			return scan.Token(NUMBER, i, match), nil
 		},
 	)
 	lexer.Add(
@@ -75,7 +75,7 @@ func TestSimple(t *testing.T) {
 	t.Log(lexer.program)
 
 	i := 0
-	for tk, err, eof := scanner.Scan(); !eof; tk, err, eof = scanner.Scan() {
+	for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
 		tok := tk.(*Token)
 		t.Log(tok)
 		if err != nil {

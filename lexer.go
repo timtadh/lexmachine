@@ -13,11 +13,14 @@ import (
 type Token struct {
 	Type int
 	Value interface{}
-	Lexmeme []byte
+	Lexeme []byte
+	TC int
+	Line int
+	Column int
 }
 
 func (self *Token) String() string {
-	return fmt.Sprintf("%d %v (%T) '%s'", self.Type, self.Value, self.Value, string(self.Lexmeme))
+	return fmt.Sprintf("%d %v (%d, %d)", self.Type, self.Value, self.Line, self.Column)
 }
 
 type Action func(scan *Scanner, match []byte) (*Token, error)
@@ -38,9 +41,11 @@ type Scanner struct {
 	scan machines.Scanner
 	Text []byte
 	TC int
+	line int
+	column int
 }
 
-func (self *Scanner) Scan() (tok interface{}, err error, eof bool) {
+func (self *Scanner) Next() (tok interface{}, err error, eof bool) {
 	tc, match, err, scan := self.scan(self.TC)
 	if scan == nil {
 		return nil, nil, true
@@ -51,16 +56,29 @@ func (self *Scanner) Scan() (tok interface{}, err error, eof bool) {
 	}
 	self.scan = scan
 	self.TC = tc
+	self.line = match.Line
+	self.column = match.Column
 
 	pattern := self.lexer.patterns[self.lexer.matches[match.PC]]
 	token, err := pattern.action(self, match.Bytes)
 	if err != nil {
 		return nil, err, false
 	} else if token == nil {
-		return self.Scan()
+		return self.Next()
 	}
 
 	return token, nil, false
+}
+
+func (self *Scanner) Token(typ int, value interface{}, lexeme []byte) *Token {
+	return &Token{
+		Type: typ,
+		Value: value,
+		Lexeme: lexeme,
+		TC: self.TC,
+		Line: self.line,
+		Column: self.column,
+	}
 }
 
 func NewLexer() *Lexer {
@@ -93,6 +111,7 @@ func (self *Lexer) Add(regex []byte, action Action) {
 	self.patterns = append(self.patterns, &Pattern{regex, action})
 }
 
+// Compiles the supplied patterns. You don't need
 func (self *Lexer) Compile() error {
 	if len(self.patterns) == 0 {
 		return fmt.Errorf("No patterns added")

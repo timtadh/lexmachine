@@ -21,7 +21,7 @@ func TestParse(t *testing.T) {
 }
 
 func t_match(program inst.InstSlice, text string, t *testing.T) {
-	expected := []machines.Match{machines.Match{len(program)-1, []byte(text)}}
+	expected := []machines.Match{machines.Match{len(program)-1, 0, 1, 1, []byte(text)}}
 	i := 0
 	scan := machines.LexerEngine(program, []byte(text))
 	for tc, m, err, scan := scan(0); scan != nil; tc, m, err, scan = scan(tc) {
