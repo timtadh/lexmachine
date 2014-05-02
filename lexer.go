@@ -41,7 +41,7 @@ func (self *Token) String() string {
 	return fmt.Sprintf("%d %v (%d, %d)", self.Type, self.Value, self.Line, self.Column)
 }
 
-type Action func(scan *Scanner, match *machines.Match) (*Token, error)
+type Action func(scan *Scanner, match *machines.Match) (interface{}, error)
 
 type Pattern struct {
 	regex []byte

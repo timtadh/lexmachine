@@ -22,25 +22,25 @@ func TestSimple(t *testing.T) {
 
 	lexer.Add(
 		[]byte("print"),
-		func(scan *Scanner, match *machines.Match)(*Token, error) {
+		func(scan *Scanner, match *machines.Match)(interface{}, error) {
 			return scan.Token(PRINT, nil, match.Bytes), nil
 		},
 	)
 	lexer.Add(
 		[]byte("([a-z]|[A-Z])([a-z]|[A-Z]|[0-9]|_)*"),
-		func(scan *Scanner, match *machines.Match)(*Token, error) {
+		func(scan *Scanner, match *machines.Match)(interface{}, error) {
 			return scan.Token(NAME, string(match.Bytes), match.Bytes), nil
 		},
 	)
 	lexer.Add(
 		[]byte("="),
-		func(scan *Scanner, match *machines.Match)(*Token, error) {
+		func(scan *Scanner, match *machines.Match)(interface{}, error) {
 			return scan.Token(EQUALS, nil, match.Bytes), nil
 		},
 	)
 	lexer.Add(
 		[]byte("[0-9]+"),
-		func(scan *Scanner, match *machines.Match)(*Token, error) {
+		func(scan *Scanner, match *machines.Match)(interface{}, error) {
 			i, err := strconv.Atoi(string(match.Bytes))
 			if err != nil {
 				return nil, err
@@ -50,14 +50,14 @@ func TestSimple(t *testing.T) {
 	)
 	lexer.Add(
 		[]byte("( |\t|\n)"),
-		func(scan *Scanner, match *machines.Match)(*Token, error) {
+		func(scan *Scanner, match *machines.Match)(interface{}, error) {
 			// skip white space
 			return nil, nil
 		},
 	)
 	lexer.Add(
 		[]byte("/\\*"),
-		func(scan *Scanner, match *machines.Match)(*Token, error) {
+		func(scan *Scanner, match *machines.Match)(interface{}, error) {
 			for tc := scan.TC; tc < len(scan.Text); tc++ {
 				if scan.Text[tc] == '\\' {
 					// the next character is skipped
