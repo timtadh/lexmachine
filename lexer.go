@@ -77,8 +77,6 @@ func (self *Scanner) Next() (tok interface{}, err error, eof bool) {
 	self.line = match.Line
 	self.column = match.Column
 
-	fmt.Println(match)
-
 	pattern := self.lexer.patterns[self.lexer.matches[match.PC]]
 	token, err := pattern.action(self, match)
 	if err != nil {
