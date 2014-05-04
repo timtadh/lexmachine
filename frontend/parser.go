@@ -201,7 +201,7 @@ func CHAR(text []byte, i int) (int, AST, error) {
 			"ran out of text in CHAR, %d", i)
 	}
 	switch text[i] {
-	case '|','+','*','?','(',')','[',']':
+	case '|','+','*','?','(',')','[',']', '^':
 		return i, nil, fmt.Errorf(
 			"unexpected operator, %s", string([]byte{text[i]}))
 	case '.':
