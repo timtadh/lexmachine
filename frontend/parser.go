@@ -13,7 +13,7 @@ func match_any(text []byte, i int) (int, AST, error) {
 		return i, nil, fmt.Errorf("out of text, %d", i)
 	}
 	if text[i] == 'n' {
-		NewCharacter('\n')
+		return i+1, NewCharacter('\n'), nil
 	}
 	return i+1, NewCharacter(text[i]), nil
 }
