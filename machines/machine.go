@@ -13,14 +13,19 @@ import (
 type Match struct {
 	PC    int
 	TC    int
-	Line  int
-	Column int
+	StartLine  int
+	StartColumn int
+	EndLine  int
+	EndColumn int
 	Bytes []byte
 }
 
 func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
+	if tc < 0 {
+		return line, col
+	}
 	if tc < prev_tc {
-		for i := prev_tc; i > tc; i-- {
+		for i := prev_tc; i > tc && i > 0; i-- {
 			if text[i] == '\n' {
 				line -= 1
 			}
@@ -34,7 +39,7 @@ func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
 		}
 		return line, col
 	}
-	for i := prev_tc+1; i <= tc; i++ {
+	for i := prev_tc+1; i <= tc && i < len(text); i++ {
 		if text[i] == '\n' {
 			col = 0
 			line += 1
@@ -60,13 +65,15 @@ func (self *Match) Equals(other *Match) bool {
 		return false
 	}
 	return self.PC == other.PC && 
-			self.Line == other.Line &&
-			self.Column == other.Column &&
+			self.StartLine == other.StartLine &&
+			self.StartColumn == other.StartColumn &&
+			self.EndLine == other.EndLine &&
+			self.EndColumn == other.EndColumn &&
 			bytes.Equal(self.Bytes, other.Bytes)
 }
 
 func (self Match) String() string {
-	return fmt.Sprintf("<Match %d %d (%d, %d) '%v'>", self.PC, self.TC, self.Line, self.Column, string(self.Bytes))
+	return fmt.Sprintf("<Match %d %d (%d, %d)-(%d, %d) '%v'>", self.PC, self.TC, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn, string(self.Bytes))
 }
 
 type Scanner func(int)(int, *Match, error, Scanner)
@@ -121,11 +128,14 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 			cqueue, nqueue = nqueue, cqueue
 			if cqueue.Empty() && match_pc > -1 {
 				line, col = compute_lc(text, prev_tc, start_tc, line, col)
+				e_line, e_col := compute_lc(text, start_tc, match_tc-1, line, col)
 				match := &Match{
 					PC: match_pc,
 					TC: start_tc,
-					Line: line,
-					Column: col,
+					StartLine: line,
+					StartColumn: col,
+					EndLine: e_line,
+					EndColumn: e_col,
 					Bytes: text[start_tc:match_tc],
 				}
 				cqueue.Push(0)

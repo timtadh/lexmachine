@@ -21,7 +21,10 @@ func TestParse(t *testing.T) {
 }
 
 func t_match(program inst.InstSlice, text string, t *testing.T) {
-	expected := []machines.Match{machines.Match{len(program)-1, 0, 1, 1, []byte(text)}}
+	expected := []machines.Match{machines.Match{len(program)-1, 0, 1, 1, 1, len(text), []byte(text)}}
+	if expected[0].EndColumn == 0 {
+		expected[0].EndColumn = 1
+	}
 	i := 0
 	scan := machines.LexerEngine(program, []byte(text))
 	for tc, m, err, scan := scan(0); scan != nil; tc, m, err, scan = scan(tc) {
@@ -175,11 +178,11 @@ func TestIdent(t *testing.T) {
 
 
 func TestLineComment(t *testing.T) {
-	ast, err := Parse([]byte("//[^\n]*\n"))
+	ast, err := Parse([]byte("//[^\n]*"))
 	if err != nil {
 		t.Error(err)
 	}
-	parsed := "(Match (Concat (Character /), (Character /), (* (Alternation (Range 0 9), (Range 11 255))), (Character \n)))"
+	parsed := "(Match (Concat (Character /), (Character /), (* (Alternation (Range 0 9), (Range 11 255)))))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -190,6 +193,6 @@ func TestLineComment(t *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "// adfawefawe awe \n", t)
+	t_match(program, "// adfawefawe awe", t)
 }
 

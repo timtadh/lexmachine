@@ -17,8 +17,10 @@ type Token struct {
 	Value interface{}
 	Lexeme []byte
 	TC int
-	Line int
-	Column int
+	StartLine int
+	StartColumn int
+	EndLine int
+	EndColumn int
 }
 
 func (self *Token) Equals(other *Token) bool {
@@ -30,15 +32,17 @@ func (self *Token) Equals(other *Token) bool {
 		return false
 	}
 	return self.TC == other.TC && 
-			self.Line == other.Line &&
-			self.Column == other.Column &&
+			self.StartLine == other.StartLine &&
+			self.StartColumn == other.StartColumn &&
+			self.EndLine == other.EndLine &&
+			self.StartColumn == other.EndColumn &&
 			bytes.Equal(self.Lexeme, other.Lexeme) &&
 			self.Type == other.Type &&
 			reflect.DeepEqual(self.Value, other.Value)
 }
 
 func (self *Token) String() string {
-	return fmt.Sprintf("%d %v (%d, %d)", self.Type, self.Value, self.Line, self.Column)
+	return fmt.Sprintf("%d %v (%d, %d)-(%d, %d)", self.Type, self.Value, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn)
 }
 
 type Action func(scan *Scanner, match *machines.Match) (interface{}, error)
@@ -59,8 +63,10 @@ type Scanner struct {
 	scan machines.Scanner
 	Text []byte
 	TC int
-	line int
-	column int
+	s_line int
+	s_column int
+	e_line int
+	e_column int
 }
 
 func (self *Scanner) Next() (tok interface{}, err error, eof bool) {
@@ -74,8 +80,10 @@ func (self *Scanner) Next() (tok interface{}, err error, eof bool) {
 	}
 	self.scan = scan
 	self.TC = tc
-	self.line = match.Line
-	self.column = match.Column
+	self.s_line = match.StartLine
+	self.s_column = match.StartColumn
+	self.e_line = match.EndLine
+	self.e_column = match.EndColumn
 
 	pattern := self.lexer.patterns[self.lexer.matches[match.PC]]
 	token, err := pattern.action(self, match)
@@ -94,8 +102,10 @@ func (self *Scanner) Token(typ int, value interface{}, lexeme []byte) *Token {
 		Value: value,
 		Lexeme: lexeme,
 		TC: self.TC,
-		Line: self.line,
-		Column: self.column,
+		StartLine: self.s_line,
+		StartColumn: self.s_column,
+		EndLine: self.e_line,
+		EndColumn: self.e_column,
 	}
 }
 

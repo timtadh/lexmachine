@@ -78,7 +78,7 @@ func TestSimple(t *testing.T) {
 			}
 			return nil,
 				fmt.Errorf("unclosed comment starting at %d, (%d, %d)",
-					match.TC, match.Line, match.Column)
+					match.TC, match.StartLine, match.StartColumn)
 		},
 	)
 
@@ -98,21 +98,21 @@ func TestSimple(t *testing.T) {
 	}
 
 	expected := []*Token{
-		&Token{NAME, "name", []byte("name"), 3, 2, 3},
-			&Token{EQUALS, nil, []byte("="), 8, 2, 8},
-			&Token{NUMBER, 10, []byte("10"), 10, 2, 10},
-		&Token{PRINT, nil, []byte("print"), 15, 3, 3},
-			&Token{NAME, "name", []byte("name"), 21, 3, 9},
-		&Token{PRINT, nil, []byte("print"), 28, 4, 3},
-			&Token{NAME, "fred", []byte("fred"), 34, 4, 9},
-		&Token{NAME, "name", []byte("name"), 41, 5, 3},
-			&Token{EQUALS, nil, []byte("="), 46, 5, 8},
-			&Token{NUMBER, 12, []byte("12"), 57, 5, 9},
-		&Token{NAME, "printname", []byte("printname"), 94, 8, 11},
-			&Token{EQUALS, nil, []byte("="), 104, 8, 21},
-			&Token{NUMBER, 13, []byte("13"), 106, 8, 23},
-		&Token{PRINT, nil, []byte("print"), 111, 9, 3},
-			&Token{NAME, "printname", []byte("printname"), 117, 9, 9},
+		&Token{NAME, "name", []byte("name"), 3, 2, 3, 2, 7},
+			&Token{EQUALS, nil, []byte("="), 8, 2, 8, 2, 9},
+			&Token{NUMBER, 10, []byte("10"), 10, 2, 10, 2, 12},
+		&Token{PRINT, nil, []byte("print"), 15, 3, 3, 3, 8},
+			&Token{NAME, "name", []byte("name"), 21, 3, 9, 3, 13},
+		&Token{PRINT, nil, []byte("print"), 28, 4, 3, 4, 8},
+			&Token{NAME, "fred", []byte("fred"), 34, 4, 9, 4, 13},
+		&Token{NAME, "name", []byte("name"), 41, 5, 3, 5, 7},
+			&Token{EQUALS, nil, []byte("="), 46, 5, 8, 5, 9},
+			&Token{NUMBER, 12, []byte("12"), 57, 5, 9, 5, 11},
+		&Token{NAME, "printname", []byte("printname"), 94, 8, 11, 8, 20},
+			&Token{EQUALS, nil, []byte("="), 104, 8, 21, 8, 22},
+			&Token{NUMBER, 13, []byte("13"), 106, 8, 23, 8, 25},
+		&Token{PRINT, nil, []byte("print"), 111, 9, 3, 9, 8},
+			&Token{NAME, "printname", []byte("printname"), 117, 9, 9, 9, 18},
 	}
 
 	t.Log(lexer.program)
