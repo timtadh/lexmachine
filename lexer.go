@@ -2,7 +2,6 @@ package lexmachine
 
 import (
 	"fmt"
-	"reflect"
 	"bytes"
 )
 
@@ -35,14 +34,13 @@ func (self *Token) Equals(other *Token) bool {
 			self.StartLine == other.StartLine &&
 			self.StartColumn == other.StartColumn &&
 			self.EndLine == other.EndLine &&
-			self.StartColumn == other.EndColumn &&
+			self.EndColumn == other.EndColumn &&
 			bytes.Equal(self.Lexeme, other.Lexeme) &&
-			self.Type == other.Type &&
-			reflect.DeepEqual(self.Value, other.Value)
+			self.Type == other.Type
 }
 
 func (self *Token) String() string {
-	return fmt.Sprintf("%d %v (%d, %d)-(%d, %d)", self.Type, self.Value, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn)
+	return fmt.Sprintf("%d %v %d (%d, %d)-(%d, %d)", self.Type, self.Value, self.TC, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn)
 }
 
 type Action func(scan *Scanner, match *machines.Match) (interface{}, error)
@@ -63,6 +61,7 @@ type Scanner struct {
 	scan machines.Scanner
 	Text []byte
 	TC int
+	pTC int
 	s_line int
 	s_column int
 	e_line int
@@ -79,6 +78,7 @@ func (self *Scanner) Next() (tok interface{}, err error, eof bool) {
 		return nil, fmt.Errorf("No match but no error"), false
 	}
 	self.scan = scan
+	self.pTC = self.TC
 	self.TC = tc
 	self.s_line = match.StartLine
 	self.s_column = match.StartColumn
@@ -101,7 +101,7 @@ func (self *Scanner) Token(typ int, value interface{}, lexeme []byte) *Token {
 		Type: typ,
 		Value: value,
 		Lexeme: lexeme,
-		TC: self.TC,
+		TC: self.pTC,
 		StartLine: self.s_line,
 		StartColumn: self.s_column,
 		EndLine: self.e_line,

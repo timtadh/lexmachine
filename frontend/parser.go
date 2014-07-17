@@ -12,9 +12,6 @@ func match_any(text []byte, i int) (int, AST, error) {
 	if i >= len(text) {
 		return i, nil, fmt.Errorf("out of text, %d", i)
 	}
-	if text[i] == 'n' {
-		return i+1, NewCharacter('\n'), nil
-	}
 	return i+1, NewCharacter(text[i]), nil
 }
 
@@ -197,6 +194,9 @@ func char(text []byte, i int) (int, AST, error) {
 func CHAR(text []byte, i int) (int, AST, error) {
 	i, err := match(text, i, '\\')
 	if err == nil {
+		if i < len(text) && text[i] == 'n' {
+			return i+1, NewCharacter('\n'), nil
+		}
 		return match_any(text, i)
 	}
 	if i >= len(text) {
