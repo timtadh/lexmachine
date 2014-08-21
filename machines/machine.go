@@ -144,7 +144,11 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 				return tc, match, nil, scan
 			}
 		}
-		if match_tc != len(text) {
+		if match_tc != len(text) && start_tc >= len(text) {
+			// the user has moved us farther than the text. Assume that was
+			// the intent and return EOF.
+			return tc, nil, nil, nil
+		} else if match_tc != len(text) {
 			done = true
 			if match_tc == -1 {
 				match_tc = 0
