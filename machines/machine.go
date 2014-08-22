@@ -228,7 +228,8 @@ func DFALexerEngine(program InstSlice, text []byte) Scanner {
 					match_tc = tc
 				}
 				fmt.Println("---------->", "match", inst, tc, pc, match_pc, match_tc)
-				pc += 1
+				// pc += 1
+				break forloop
 			case JMP:
 				pc = inst.X
 			case SPLIT:
