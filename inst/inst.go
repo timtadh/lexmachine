@@ -7,6 +7,7 @@ const (
 	SPLIT
 	JMP
 	MATCH
+	CHJMP
 )
 
 type Inst struct {
@@ -25,6 +26,10 @@ func New(op uint8, x, y uint32) *Inst {
 	return self
 }
 
+func (self Inst) Copy() *Inst {
+	return New(self.Op, self.X, self.Y)
+}
+
 func (self Inst) String() (s string) {
 	switch self.Op {
 	case CHAR:
@@ -39,6 +44,12 @@ func (self Inst) String() (s string) {
 		s = fmt.Sprintf("JMP    %v", self.X)
 	case MATCH:
 		s = "MATCH"
+	case CHJMP:
+		if self.X == self.Y {
+			s = fmt.Sprintf("CHJMP  %d (%s)", self.X, string([]byte{byte(self.X)}))
+		} else {
+			s = fmt.Sprintf("CHJMP  %d (%s), %d (%s)", self.X, string([]byte{byte(self.X)}), self.Y, string([]byte{byte(self.Y)}))
+		}
 	}
 	return
 }
