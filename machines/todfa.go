@@ -216,10 +216,10 @@ func ToDFA(program InstSlice) InstSlice {
 				panic(err)
 			}
 			uid := uint32(u.(*dfa_state).id)
-			if next == nil && i + 1 == len(s.moves) {
+			if next == nil && i + 1 == len(s.moves) && !s.nfa_states.HasMatch(program) {
 				dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHAR, uint32(move.a), uint32(move.b)})
 				dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
-			} else if uint32(s.id + 1) != uid || next != nil {
+			} else if uint32(s.id + 1) != uid || next != nil || s.nfa_states.HasMatch(program) {
 				dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHJMP, uint32(move.a), uint32(move.b)})
 				dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
 			} else {
