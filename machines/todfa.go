@@ -231,10 +231,11 @@ func ToDFA(program InstSlice) InstSlice {
 		if next != nil {
 			dfa_build[s.id] = append(dfa_build[s.id], next)
 		}
-		if s.nfa_states.HasMatch(program) {
-			dfa_build[s.id] = append(dfa_build[s.id], &Inst{MATCH, 0, 0})
+		if s.nfa_states.HasMatch(program) && s.id + 2 != len(dfa_build) {
+			dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uint32(len(dfa_build)-1), 0})
 		}
 	}
+	dfa_build[len(dfa_build)-1] = append(dfa_build[len(dfa_build)-1], &Inst{MATCH, 0, 0})
 
 	dfa := make(InstSlice, 0, len(program))
 	dfajmp := make([]int, len(dfa_build))
