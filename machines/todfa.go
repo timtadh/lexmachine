@@ -206,9 +206,8 @@ func ToDFA(program InstSlice) InstSlice {
 	}
 
 	dfa_build := make([]InstSlice, dfa_states.Size()+1)
-	for k, v, next := dfa_states.Iterate()(); next != nil; k, v, next = next() {
+	for _, v, next := dfa_states.Iterate()(); next != nil; _, v, next = next() {
 		s := v.(*dfa_state)
-		fmt.Println(k, s.id)
 		var next *Inst = nil
 		for i, move := range s.moves {
 			u, err := dfa_states.Get(move.U)
@@ -216,16 +215,22 @@ func ToDFA(program InstSlice) InstSlice {
 				panic(err)
 			}
 			uid := uint32(u.(*dfa_state).id)
-			if len(s.moves) == 1 && uint32(s.id + 1) == uid && !s.nfa_states.HasMatch(program) {
-				next = &Inst{CHAR, uint32(move.a), uint32(move.b)}
-			} else if next == nil && i + 1 == len(s.moves) && !s.nfa_states.HasMatch(program) {
-				dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHAR, uint32(move.a), uint32(move.b)})
-				dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
-			} else if uint32(s.id + 1) != uid || next != nil || s.nfa_states.HasMatch(program) {
+			if s.nfa_states.HasMatch(program) {
 				dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHJMP, uint32(move.a), uint32(move.b)})
 				dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
+			} else if next == nil {
+				if uint32(s.id + 1) == uid {
+					next = &Inst{CHAR, uint32(move.a), uint32(move.b)}
+				} else if i + 1 == len(s.moves) {
+					dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHAR, uint32(move.a), uint32(move.b)})
+					dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
+				} else {
+					dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHJMP, uint32(move.a), uint32(move.b)})
+					dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
+				}
 			} else {
-				next = &Inst{CHAR, uint32(move.a), uint32(move.b)}
+				dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHJMP, uint32(move.a), uint32(move.b)})
+				dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
 			}
 		}
 		if next != nil {
@@ -234,6 +239,12 @@ func ToDFA(program InstSlice) InstSlice {
 		if s.nfa_states.HasMatch(program) && s.id + 2 != len(dfa_build) {
 			dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uint32(len(dfa_build)-1), 0})
 		}
+
+		/*
+		fmt.Println(k, s.id)
+		for _, inst := range dfa_build[s.id] {
+			fmt.Println("    ", inst)
+		} */
 	}
 	dfa_build[len(dfa_build)-1] = append(dfa_build[len(dfa_build)-1], &Inst{MATCH, 0, 0})
 

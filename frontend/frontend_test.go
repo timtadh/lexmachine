@@ -46,7 +46,7 @@ func t_match(program inst.InstSlice, text string, t *testing.T) {
 	if l == 0 {
 		l += 1
 	}
-	expected = []machines.Match{machines.Match{len(dfa), 0, 1, 1, 1, l, []byte(text)}}
+	expected = []machines.Match{machines.Match{len(dfa)-1, 0, 1, 1, 1, l, []byte(text)}}
 	i = 0
 	scan = machines.DFALexerEngine(dfa, []byte(text))
 	for tc, m, err, scan := scan(0); scan != nil; tc, m, err, scan = scan(tc) {

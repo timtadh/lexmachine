@@ -191,15 +191,15 @@ func DFALexerEngine(program InstSlice, text []byte) Scanner {
 		}
 		pc := uint32(0)
 		forloop: for ; tc <= len(text) && int(pc) < len(program); {
-			fmt.Println(pc, tc, len(text))
+			// fmt.Println(pc, tc, len(text))
 			inst := program[pc]
-			fmt.Print(inst)
+			// fmt.Print(inst)
 
-			if tc < len(text) {
-				fmt.Println(" ", text[tc])
-			} else {
-				fmt.Println()
-			}
+			// if tc < len(text) {
+				// fmt.Println(" ", text[tc])
+			// } else {
+				// fmt.Println()
+			// }
 
 			switch inst.Op {
 			case CHAR:
@@ -227,7 +227,7 @@ func DFALexerEngine(program InstSlice, text []byte) Scanner {
 					match_pc = int(pc)
 					match_tc = tc
 				}
-				fmt.Println("---------->", "match", inst, tc, pc, match_pc, match_tc)
+				// fmt.Println("---------->", "match", inst, tc, pc, match_pc, match_tc)
 				// pc += 1
 				break forloop
 			case JMP:
