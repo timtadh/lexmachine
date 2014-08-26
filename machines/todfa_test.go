@@ -48,7 +48,7 @@ func TestToDFA(t *testing.T) {
 		}
 		i++
 	}
-	if i != len(expected) {
+	if i + 1 < len(expected) {
 		t.Error("unconsumed matches", expected[i:])
 	}
 }

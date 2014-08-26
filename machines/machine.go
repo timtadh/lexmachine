@@ -172,35 +172,20 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 
 func DFALexerEngine(program InstSlice, text []byte) Scanner {
 	done := false
-	match_pc := -1
-	match_tc := -1
-
-	prev_tc := 0
 	line := 1
 	col := 1
-
+	prev_tc := 0
+	match_tc := -1
 	var scan Scanner
 	scan = func(tc int) (int, *Match, error, Scanner) {
-		if done {
+		if done || match_tc == len(text) {
 			return tc, nil, nil, nil
 		}
 		start_tc := tc
-		if tc < match_tc {
-			// we back-tracked so reset the last match_tc
-			match_tc = -1
-		}
-		pc := uint32(0)
-		forloop: for ; tc <= len(text) && int(pc) < len(program); {
-			// fmt.Println(pc, tc, len(text))
+		pc := 0
+		loop: for ; tc <= len(text) && int(pc) < len(program); {
 			inst := program[pc]
-			// fmt.Print(inst)
-
-			// if tc < len(text) {
-				// fmt.Println(" ", text[tc])
-			// } else {
-				// fmt.Println()
-			// }
-
+			fmt.Println(tc, len(text), inst)
 			switch inst.Op {
 			case CHAR:
 				x := byte(inst.X)
@@ -209,72 +194,39 @@ func DFALexerEngine(program InstSlice, text []byte) Scanner {
 					pc += 1
 					tc += 1
 				} else {
-					done = true
-					// s := ""
-					// if tc < len(text) {
-						// s = string(text[tc])
-					// } else {
-						// s = "EOF"
-					// }
-					break forloop
-					// return tc, nil, fmt.Errorf("(dfa) expected char %v, %d (%d, %d), '%s'", inst, match_tc, line, col,s), nil
+					break loop
 				}
 			case MATCH:
-				if match_tc < tc {
-					match_pc = int(pc)
-					match_tc = tc
-				} else if match_pc > int(pc) {
-					match_pc = int(pc)
-					match_tc = tc
+				line, col = compute_lc(text, prev_tc, start_tc, line, col)
+				e_line, e_col := compute_lc(text, start_tc, tc-1, line, col)
+				match := &Match{
+					PC: pc,
+					TC: start_tc,
+					StartLine: line,
+					StartColumn: col,
+					EndLine: e_line,
+					EndColumn: e_col,
+					Bytes: text[start_tc:tc],
 				}
-				// fmt.Println("---------->", "match", inst, tc, pc, match_pc, match_tc)
-				// pc += 1
-				break forloop
+				match_tc = tc
+				return tc, match, nil, scan
 			case JMP:
-				pc = inst.X
+				pc = int(inst.X)
 			case SPLIT:
 				panic(fmt.Errorf("You must supply a DFA you gave an NFA"))
 			case CHJMP:
 				x := byte(inst.X)
 				y := byte(inst.Y)
 				if tc < len(text) && x <= text[tc] && text[tc] <= y  {
-					pc = pc + 1
+					pc += 1
 					tc += 1
 				} else {
-					pc = pc + 2
+					pc += 2
 				}
 			}
 		}
-		if match_pc > -1 {
-			line, col = compute_lc(text, prev_tc, start_tc, line, col)
-			e_line, e_col := compute_lc(text, start_tc, match_tc-1, line, col)
-			match := &Match{
-				PC: match_pc,
-				TC: start_tc,
-				StartLine: line,
-				StartColumn: col,
-				EndLine: e_line,
-				EndColumn: e_col,
-				Bytes: text[start_tc:match_tc],
-			}
-			prev_tc = start_tc
-			match_pc = -1
-			return tc, match, nil, scan
-		}
-		if match_tc != len(text) && start_tc >= len(text) {
-			// the user has moved us farther than the text. Assume that was
-			// the intent and return EOF.
-			return tc, nil, nil, nil
-		} else if match_tc != len(text) {
-			done = true
-			if match_tc == -1 {
-				match_tc = 0
-			}
-			line, col = compute_lc(text, 0, match_tc, 1, 1)
-			return tc, nil, fmt.Errorf("(dfa) Unconsumed text, %d (%d, %d), '%s'", match_tc, line, col, text[match_tc:]), nil
-		} else {
-			return tc, nil, nil, nil
-		}
+		done = true
+		return tc, nil, fmt.Errorf("Unconsumed text, %d (%d, %d), '%s'", tc, line, col, text[tc:]), scan
 	}
 	return scan
 }
