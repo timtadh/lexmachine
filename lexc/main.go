@@ -94,6 +94,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(program)
+	for i, inst := range program {
+		fmt.Printf("%3d %s\n", i, inst.Serialize())
+	}
 }
 

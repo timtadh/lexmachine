@@ -54,6 +54,22 @@ func (self Inst) String() (s string) {
 	return
 }
 
+func (self Inst) Serialize() (s string) {
+	switch self.Op {
+	case CHAR:
+		s = fmt.Sprintf("CHAR   %d, %d", self.X, self.Y)
+	case SPLIT:
+		s = fmt.Sprintf("SPLIT  %v, %v", self.X, self.Y)
+	case JMP:
+		s = fmt.Sprintf("JMP    %v", self.X)
+	case MATCH:
+		s = "MATCH"
+	case CHJMP:
+		s = fmt.Sprintf("CHJMP  %d, %d", self.X, self.Y)
+	}
+	return
+}
+
 func (self InstSlice) String() (s string) {
 	s = "{\n"
 	for i, inst := range self {
