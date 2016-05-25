@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"fmt"
+	"sort"
 )
 
 var (
@@ -196,6 +197,10 @@ func CHAR(text []byte, i int) (int, AST, error) {
 	if err == nil {
 		if i < len(text) && text[i] == 'n' {
 			return i+1, NewCharacter('\n'), nil
+		} else if i < len(text) && text[i] == 'r' {
+			return i+1, NewCharacter('\r'), nil
+		} else if i < len(text) && text[i] == 't' {
+			return i+1, NewCharacter('\t'), nil
 		}
 		return match_any(text, i)
 	}
@@ -246,16 +251,57 @@ func charNotRange(text []byte, i int) (int, AST, error) {
 	if i >= len(text) {
 		return i, nil, fmt.Errorf("out of text, %d", i)
 	}
-	ch := i
-	i++
+	chs := make([]byte, 0, 10)
+	for ; i < len(text) && text[i] != ']'; i++ {
+		chs = append(chs, text[i])
+	}
 	i, err := match(text, i, ']')
 	if err != nil {
 		return i, nil, err
 	}
+	if len(chs) == 0 {
+		return i, nil, fmt.Errorf("empty negated range at %v", i)
+	}
+	sortBytes(chs)
+	ranges := make([]*Range, 0, len(chs)+1)
+	var prev byte = 0
+	for _, ch := range chs {
+		if prev == ch {
+			goto loop_inc
+		}
+		ranges = append(ranges, &Range{From: prev, To: ch-1})
+		loop_inc:
+			prev = ch+1
+	}
 	ast := NewAlternation(
-		NewRange(NewCharacter(0), NewCharacter(text[ch]-1)),
-		NewRange(NewCharacter(text[ch]+1), NewCharacter(255)),
+		ranges[len(ranges)-1],
+		&Range{From: prev, To: 255},
 	)
+	for j := len(ranges) - 2; j >= 0; j-- {
+		ast = NewAlternation(
+			ranges[j],
+			ast,
+		)
+	}
 	return i, ast, nil
 }
+
+func sortBytes(bytes sortableBytes) {
+	sort.Sort(bytes)
+}
+
+type sortableBytes []byte
+
+func (s sortableBytes) Len() int {
+	return len(s)
+}
+
+func (s sortableBytes) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s sortableBytes) Less(i, j int) bool {
+	return s[i] < s[j]
+}
+
 
