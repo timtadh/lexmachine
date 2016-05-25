@@ -6,6 +6,10 @@ import (
 )
 
 import (
+	"github.com/timtadh/data-structures/errors"
+)
+
+import (
 	"github.com/timtadh/lexmachine/queue"
 	. "github.com/timtadh/lexmachine/inst"
 )
@@ -98,6 +102,11 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 		if tc < match_tc {
 			// we back-tracked so reset the last match_tc
 			match_tc = -1
+		} else if tc == match_tc {
+			// the caller did not reset the tc, we are where we left
+		} else if match_tc != -1 && tc > match_tc {
+			// we skipped text
+			match_tc = tc
 		}
 		for ; tc <= len(text); tc++ {
 			for !cqueue.Empty() {
@@ -154,7 +163,7 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 				match_tc = 0
 			}
 			line, col = compute_lc(text, 0, match_tc, 1, 1)
-			return tc, nil, fmt.Errorf("Unconsumed text, %d (%d, %d), '%s'", match_tc, line, col, text[match_tc:]), scan
+			return tc, nil, errors.Errorf("Unconsumed text, %d (%d, %d), '%s'", match_tc, line, col, text[match_tc:]), scan
 		} else {
 			return tc, nil, nil, nil
 		}

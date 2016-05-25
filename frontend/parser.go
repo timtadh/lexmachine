@@ -5,26 +5,30 @@ import (
 	"sort"
 )
 
+import (
+	"github.com/timtadh/data-structures/errors"
+)
+
 var (
 	ErrorNoOp = fmt.Errorf("No Operator")
 )
 
 func match_any(text []byte, i int) (int, AST, error) {
 	if i >= len(text) {
-		return i, nil, fmt.Errorf("out of text, %d", i)
+		return i, nil, errors.Errorf("out of text, %d", i)
 	}
 	return i+1, NewCharacter(text[i]), nil
 }
 
 func match(text []byte, i int, c byte) (int, error) {
 	if i >= len(text) {
-		return i, fmt.Errorf("out of text, %d", i)
+		return i, errors.Errorf("out of text, %d", i)
 	} else if text[i] == c {
 		i++
 		return i, nil
 	}
 	return i,
-	fmt.Errorf(
+	errors.Errorf(
 		"Expected text at pos, %d, to equal %s, got %s",
 		i,
 		string([]byte{c}),
@@ -41,7 +45,7 @@ func regex(text []byte) (AST, error) {
 	if err != nil {
 		return nil, err
 	} else if i != len(text) {
-		return nil, fmt.Errorf("unconsumed input")
+		return nil, errors.Errorf("unconsumed input")
 	}
 	return NewMatch(ast), nil
 }
@@ -136,7 +140,7 @@ func atomic(text []byte, i int) (int, AST, error) {
 	if err == nil {
 		return i, ast, nil
 	}
-	return i, nil, fmt.Errorf("Expected group or concat at %d", i)
+	return i, nil, errors.Errorf("Expected group or concat at %d, %v", i, string(text))
 }
 
 func group(text []byte, i int) (int, AST, error) {
@@ -188,35 +192,48 @@ func char(text []byte, i int) (int, AST, error) {
 	if err == nil {
 		return i, R, nil
 	}
-	return i, nil, fmt.Errorf(
-		"Expected a CHAR or charRange at %d", i)
+	return i, nil, errors.Errorf(
+		"Expected a CHAR or charRange at %d, %v", i, string(text))
 }
 
 func CHAR(text []byte, i int) (int, AST, error) {
-	i, err := match(text, i, '\\')
-	if err == nil {
-		if i < len(text) && text[i] == 'n' {
-			return i+1, NewCharacter('\n'), nil
-		} else if i < len(text) && text[i] == 'r' {
-			return i+1, NewCharacter('\r'), nil
-		} else if i < len(text) && text[i] == 't' {
-			return i+1, NewCharacter('\t'), nil
-		}
-		return match_any(text, i)
-	}
 	if i >= len(text) {
-		return i, nil, fmt.Errorf(
-			"ran out of text in CHAR, %d", i)
+		return i, nil, errors.Errorf("out of input %v, %v", i, string(text))
+	}
+	if text[i] == '\\' {
+		i, b, err := getByte(text, i)
+		if err != nil {
+			return i, nil, err
+		}
+		return i+1, NewCharacter(b), nil
 	}
 	switch text[i] {
 	case '|','+','*','?','(',')','[',']', '^':
-		return i, nil, fmt.Errorf(
+		return i, nil, errors.Errorf(
 			"unexpected operator, %s", string([]byte{text[i]}))
 	case '.':
 		return i+1, NewAny(), nil
 	default:
-		return match_any(text, i)
+		return i+1, NewCharacter(text[i]), nil
 	}
+}
+
+func getByte(text []byte, i int) (int, byte, error) {
+	i, err := match(text, i, '\\')
+	if err == nil {
+		if i < len(text) && text[i] == 'n' {
+			return i, '\n', nil
+		} else if i < len(text) && text[i] == 'r' {
+			return i, '\r', nil
+		} else if i < len(text) && text[i] == 't' {
+			return i, '\t', nil
+		}
+		return i, text[i], nil
+	}
+	if i >= len(text) {
+		return i, 0, errors.Errorf("ran out of text at %d", i)
+	}
+	return i, text[i], nil
 }
 
 func charRange(text []byte, i int) (int, AST, error) {
@@ -249,18 +266,24 @@ func charRange(text []byte, i int) (int, AST, error) {
 
 func charNotRange(text []byte, i int) (int, AST, error) {
 	if i >= len(text) {
-		return i, nil, fmt.Errorf("out of text, %d", i)
+		return i, nil, errors.Errorf("out of text, %d", i)
 	}
 	chs := make([]byte, 0, 10)
 	for ; i < len(text) && text[i] != ']'; i++ {
-		chs = append(chs, text[i])
+		var b byte
+		var err error
+		i, b, err = getByte(text, i)
+		if err != nil {
+			return i, nil, err
+		}
+		chs = append(chs, b)
 	}
 	i, err := match(text, i, ']')
 	if err != nil {
 		return i, nil, err
 	}
 	if len(chs) == 0 {
-		return i, nil, fmt.Errorf("empty negated range at %v", i)
+		return i, nil, errors.Errorf("empty negated range at %v", i)
 	}
 	sortBytes(chs)
 	ranges := make([]*Range, 0, len(chs)+1)

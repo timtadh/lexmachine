@@ -1,6 +1,9 @@
 package inst
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 const (
 	CHAR = iota
@@ -71,4 +74,12 @@ func (self InstSlice) String() (s string) {
 	}
 	s += "}"
 	return
+}
+
+func (self InstSlice) Serialize() (s string) {
+	lines := make([]string, 0, len(self))
+	for i, inst := range self {
+		lines = append(lines, fmt.Sprintf("%3d %s", i, inst.Serialize()))
+	}
+	return strings.Join(lines, "\n")
 }

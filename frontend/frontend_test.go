@@ -1,13 +1,15 @@
 package frontend
 
 import "testing"
+import "github.com/timtadh/data-structures/test"
 
 import (
 	"github.com/timtadh/lexmachine/machines"
 	"github.com/timtadh/lexmachine/inst"
 )
 
-func TestParse(t *testing.T) {
+func TestParse(x *testing.T) {
+	t := (*test.T)(x)
 	ast, err := Parse([]byte("ab(a|c|d)?we*\\\\\\[\\..[s-f]+|qyx"))
 	if err != nil {
 		t.Error(err)
@@ -20,7 +22,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func t_match(program inst.InstSlice, text string, t *testing.T) {
+func t_match(program inst.InstSlice, text string, t *test.T) {
 	expected := []machines.Match{machines.Match{len(program)-1, 0, 1, 1, 1, len(text), []byte(text)}}
 	if expected[0].EndColumn == 0 {
 		expected[0].EndColumn = 1
@@ -36,12 +38,11 @@ func t_match(program inst.InstSlice, text string, t *testing.T) {
 		}
 		i++
 	}
-	if i != len(expected) {
-		t.Error("unconsumed matches", expected[i:])
-	}
+	t.Assert(i == len(expected), "unconsumed matches %v", expected[i:])
 }
 
-func TestParseConcatAlts(t *testing.T) {
+func TestParseConcatAlts(x *testing.T) {
+	t := (*test.T)(x)
 	ast, err := Parse([]byte("A|((C|D|E)(F|G)(H|I)B)"))
 	if err != nil {
 		t.Error(err)
@@ -72,7 +73,8 @@ func TestParseConcatAlts(t *testing.T) {
 	t_match(program, "EGIB", t)
 }
 
-func TestParseConcatAltMaybes(t *testing.T) {
+func TestParseConcatAltMaybes(x *testing.T) {
+	t := (*test.T)(x)
 	ast, err := Parse([]byte("((A?)?|(B|C))(D|E?)"))
 	if err != nil {
 		t.Error(err)
@@ -103,7 +105,8 @@ func TestParseConcatAltMaybes(t *testing.T) {
 }
 
 
-func TestParseConcatAltPlus(t *testing.T) {
+func TestParseConcatAltPlus(x *testing.T) {
+	t := (*test.T)(x)
 	ast, err := Parse([]byte("(A|(B|C))+(D|E?)"))
 	if err != nil {
 		t.Error(err)
@@ -126,7 +129,8 @@ func TestParseConcatAltPlus(t *testing.T) {
 	t_match(program, "AAABBCCD", t)
 }
 
-func TestParseConcatAltStar(t *testing.T) {
+func TestParseConcatAltStar(x *testing.T) {
+	t := (*test.T)(x)
 	ast, err := Parse([]byte("(A|[C-G])*(X|Y?)"))
 	if err != nil {
 		t.Error(err)
@@ -153,7 +157,8 @@ func TestParseConcatAltStar(t *testing.T) {
 	t_match(program, "CAACCGEDFX", t)
 }
 
-func TestIdent(t *testing.T) {
+func TestIdent(x *testing.T) {
+	t := (*test.T)(x)
 	ast, err := Parse([]byte("([a-z]|[A-Z])([a-z]|[A-Z]|[0-9]|_)*"))
 	if err != nil {
 		t.Error(err)
@@ -177,7 +182,8 @@ func TestIdent(t *testing.T) {
 }
 
 
-func TestLineComment(t *testing.T) {
+func TestLineComment(x *testing.T) {
+	t := (*test.T)(x)
 	ast, err := Parse([]byte("//[^\n]*"))
 	if err != nil {
 		t.Error(err)

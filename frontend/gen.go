@@ -1,7 +1,9 @@
 package frontend
 
+import ()
+
 import (
-	"fmt"
+	"github.com/timtadh/data-structures/errors"
 )
 
 import (
@@ -18,7 +20,7 @@ func Generate(ast AST) (inst.InstSlice, error) {
 	}
 	fill := g.gen(ast)
 	if len(fill) != 0 {
-		return nil, fmt.Errorf("unconnected instructions")
+		return nil, errors.Errorf("unconnected instructions")
 	}
 	return g.program, nil
 }

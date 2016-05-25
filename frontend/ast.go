@@ -168,3 +168,4 @@ func NewAny() AST {
 func NewRange(from, to AST) AST {
 	return &Range{from.(*Character).Char, to.(*Character).Char}
 }
+

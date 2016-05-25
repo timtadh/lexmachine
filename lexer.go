@@ -96,16 +96,16 @@ func (self *Scanner) Next() (tok interface{}, err error, eof bool) {
 	return token, nil, false
 }
 
-func (self *Scanner) Token(typ int, value interface{}, lexeme []byte) *Token {
+func (self *Scanner) Token(typ int, value interface{}, m *machines.Match) *Token {
 	return &Token{
 		Type: typ,
 		Value: value,
-		Lexeme: lexeme,
-		TC: self.pTC,
-		StartLine: self.s_line,
-		StartColumn: self.s_column,
-		EndLine: self.e_line,
-		EndColumn: self.e_column,
+		Lexeme: m.Bytes,
+		TC: m.TC,
+		StartLine: m.StartLine,
+		StartColumn: m.StartColumn,
+		EndLine: m.EndLine,
+		EndColumn: m.EndColumn,
 	}
 }
 
@@ -114,11 +114,9 @@ func NewLexer() *Lexer {
 }
 
 func (self *Lexer) Scanner(text []byte) (*Scanner, error) {
-	if self.program == nil || len(self.patterns) != len(self.matches) {
-		err := self.Compile()
-		if err != nil {
-			return nil, err
-		}
+	err := self.Compile()
+	if err != nil {
+		return nil, err
 	}
 
 	scan := machines.LexerEngine(self.program, text)
@@ -143,6 +141,9 @@ func (self *Lexer) Add(regex []byte, action Action) {
 func (self *Lexer) Compile() error {
 	if len(self.patterns) == 0 {
 		return fmt.Errorf("No patterns added")
+	}
+	if self.program != nil {
+		return nil
 	}
 
 	asts := make([]frontend.AST, 0, len(self.patterns))
