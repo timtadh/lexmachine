@@ -3,6 +3,7 @@ package frontend
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"runtime"
 )
 
@@ -11,7 +12,6 @@ import (
 )
 
 var (
-	ErrorNoOp = fmt.Errorf("No Operator")
 	DEBUG = false
 )
 
@@ -20,6 +20,7 @@ type ParseError struct {
 	Production string
 	TC int
 	text []byte
+	chain []*ParseError
 }
 
 func Errorf(text []byte, tc int, format string, args ...interface{}) *ParseError {
@@ -27,6 +28,8 @@ func Errorf(text []byte, tc int, format string, args ...interface{}) *ParseError
 	var fn string = "unknown"
 	if ok {
 		fn = runtime.FuncForPC(pc).Name()
+		split := strings.Split(fn, ".")
+		fn = split[len(split)-1]
 	}
 	msg := fmt.Sprintf(format, args...)
 	return &ParseError{
@@ -56,23 +59,37 @@ func linecol(text []byte, tc int) (line int, col int) {
 }
 
 func (p *ParseError) Error() string {
+	errs := make([]string, 0, len(p.chain) + 1)
+	for i := len(p.chain)-1; i >= 0; i-- {
+		errs = append(errs, p.chain[i].Error())
+	}
+	errs = append(errs, p.error())
+	return strings.Join(errs, "\n")
+}
+
+func (p *ParseError) error() string {
 	line, col := linecol(p.text, p.TC)
-	return fmt.Sprintf("error in production %v : %v : at index %v line %v column %v '%s'",
-		p.Production, p.Reason, p.TC, line, col, p.text[p.TC:])
+	return fmt.Sprintf("Regex parse error in production '%v' : at index %v line %v column %v '%s' : %v",
+		p.Production, p.TC, line, col, p.text[p.TC:], p.Reason)
 }
 
 func (p *ParseError) String() string {
 	return p.Error()
 }
 
-func match_any(text []byte, i int) (int, AST, error) {
+func (p *ParseError) Chain(e *ParseError) *ParseError {
+	p.chain = append(p.chain, e)
+	return p
+}
+
+func match_any(text []byte, i int) (int, AST, *ParseError) {
 	if i >= len(text) {
 		return i, nil, Errorf(text, i, "out of text, %d", i)
 	}
 	return i+1, NewCharacter(text[i]), nil
 }
 
-func match(text []byte, i int, c byte) (int, error) {
+func match(text []byte, i int, c byte) (int, *ParseError) {
 	if i >= len(text) {
 		return i, Errorf(text, i, "out of text, %d", i)
 	} else if text[i] == c {
@@ -89,10 +106,14 @@ func match(text []byte, i int, c byte) (int, error) {
 }
 
 func Parse(text []byte) (AST, error) {
-	return regex(text)
+	a, err := regex(text)
+	if err != nil {
+		return nil, err
+	}
+	return a, nil
 }
 
-func regex(text []byte) (AST, error) {
+func regex(text []byte) (AST, *ParseError) {
 	i, ast, err := alternation(text, 0)
 	if err != nil {
 		return nil, err
@@ -102,11 +123,11 @@ func regex(text []byte) (AST, error) {
 	return NewMatch(ast), nil
 }
 
-func alternation(text []byte, i int) (int, AST, error) {
+func alternation(text []byte, i int) (int, AST, *ParseError) {
 	return _alt(text, i)
 }
 
-func _alt(text []byte, i int) (int, AST, error) {
+func _alt(text []byte, i int) (int, AST, *ParseError) {
 	i, C, err := choice(text, i)
 	if err != nil {
 		return i, nil, err
@@ -118,7 +139,7 @@ func _alt(text []byte, i int) (int, AST, error) {
 	return i, NewAlternation(C, A), nil
 }
 
-func alternation_(text []byte, i int) (int, AST, error) {
+func alternation_(text []byte, i int) (int, AST, *ParseError) {
 	if i >= len(text) {
 		return i, nil, nil
 	}
@@ -129,11 +150,11 @@ func alternation_(text []byte, i int) (int, AST, error) {
 	return _alt(text, i)
 }
 
-func choice(text []byte, i int) (int, AST, error) {
+func choice(text []byte, i int) (int, AST, *ParseError) {
 	return _choice(text, i)
 }
 
-func _choice(text []byte, i int) (int, AST, error) {
+func _choice(text []byte, i int) (int, AST, *ParseError) {
 	i, A, err := atomicOp(text, i)
 	if err != nil {
 		return i, nil, err
@@ -145,7 +166,7 @@ func _choice(text []byte, i int) (int, AST, error) {
 	return i, NewConcat(A, C), nil
 }
 
-func choice_(text []byte, i int) (int, AST, error) {
+func choice_(text []byte, i int) (int, AST, *ParseError) {
 	if i >= len(text) {
 		return i, nil, nil
 	}
@@ -153,7 +174,7 @@ func choice_(text []byte, i int) (int, AST, error) {
 	return i, C, nil
 }
 
-func atomicOp(text []byte, i int) (int, AST, error) {
+func atomicOp(text []byte, i int) (int, AST, *ParseError) {
 	i, A, err := atomic(text, i)
 	if DEBUG {
 		errors.Logf("DEBUG", "atomic %v", err)
@@ -162,7 +183,7 @@ func atomicOp(text []byte, i int) (int, AST, error) {
 		return i, nil, err
 	}
 	i, O, err := op(text, i)
-	if err != nil && err == ErrorNoOp {
+	if err != nil && err.Reason == "No Operator" {
 		return i, A, nil
 	} else if err != nil {
 		return i, A, err
@@ -170,7 +191,7 @@ func atomicOp(text []byte, i int) (int, AST, error) {
 	return i, NewApplyOp(O, A), err
 }
 
-func op(text []byte, i int) (int, AST, error) {
+func op(text []byte, i int) (int, AST, *ParseError) {
 	i, err := match(text, i, '+')
 	if err == nil {
 		return i, NewOp("+"), nil
@@ -183,35 +204,35 @@ func op(text []byte, i int) (int, AST, error) {
 	if err == nil {
 		return i, NewOp("?"), nil
 	}
-	return i, nil, ErrorNoOp
+	return i, nil, Errorf(text, i, "No Operator")
 }
 
-func atomic(text []byte, i int) (int, AST, error) {
-	i, ast, err := char(text, i)
-	if err == nil {
+func atomic(text []byte, i int) (int, AST, *ParseError) {
+	i, ast, errChar := char(text, i)
+	if errChar == nil {
 		return i, ast, nil
 	}
 	if DEBUG {
-		errors.Logf("DEBUG", "char %v", err)
+		errors.Logf("DEBUG", "char %v", errChar)
 	}
-	i, ast, err = group(text, i)
-	if err == nil {
+	i, ast, errGroup := group(text, i)
+	if errGroup == nil {
 		return i, ast, nil
 	}
 	if DEBUG {
-		errors.Logf("DEBUG", "group %v", err)
+		errors.Logf("DEBUG", "group %v", errGroup)
 	}
-	return i, nil, Errorf(text, i, "Expected group or char")
+	return i, nil, Errorf(text, i, "Expected group or char").Chain(errChar).Chain(errGroup)
 }
 
-func group(text []byte, j int) (int, AST, error) {
+func group(text []byte, j int) (int, AST, *ParseError) {
 	i, err := match(text, j, '(')
 	if err != nil {
 		return i, nil, err
 	}
 	i, A, err := alternation(text, i)
 	if err != nil {
-		return i, nil, err
+		return j, nil, err
 	}
 	i, err = match(text, i, ')')
 	if err != nil {
@@ -220,11 +241,11 @@ func group(text []byte, j int) (int, AST, error) {
 	return i, A, nil
 }
 
-func concat(text []byte, i int) (int, AST, error) {
+func concat(text []byte, i int) (int, AST, *ParseError) {
 	return _concat(text, i)
 }
 
-func _concat(text []byte, i int) (int, AST, error) {
+func _concat(text []byte, i int) (int, AST, *ParseError) {
 	i, Ch, err := char(text, i)
 	if err != nil {
 		return i, nil, err
@@ -236,28 +257,27 @@ func _concat(text []byte, i int) (int, AST, error) {
 	return i, NewConcat(Ch, Co), nil
 }
 
-func concat_(text []byte, i int) (int, AST, error) {
+func concat_(text []byte, i int) (int, AST, *ParseError) {
 	if i >= len(text) {
 		return i, nil, nil
 	}
-	i, C, _ := _concat(text, i)
-	return i, C, nil
+	return _concat(text, i)
 }
 
-func char(text []byte, i int) (int, AST, error) {
-	i, C, err := CHAR(text, i)
-	if err == nil {
+func char(text []byte, i int) (int, AST, *ParseError) {
+	i, C, errCHAR := CHAR(text, i)
+	if errCHAR == nil {
 		return i, C, nil
 	}
-	i, R, err := charRange(text, i)
-	if err == nil {
+	i, R, errRange := charRange(text, i)
+	if errRange == nil {
 		return i, R, nil
 	}
-	return i, nil, Errorf(text, i, 
-		"Expected a CHAR or charRange at %d, %v", i, string(text))
+	return i, nil, Errorf(text, i,
+		"Expected a CHAR or charRange at %d, %v", i, string(text)).Chain(errCHAR).Chain(errRange)
 }
 
-func CHAR(text []byte, i int) (int, AST, error) {
+func CHAR(text []byte, i int) (int, AST, *ParseError) {
 	if i >= len(text) {
 		return i, nil, Errorf(text, i, "out of input %v, %v", i, string(text))
 	}
@@ -279,7 +299,7 @@ func CHAR(text []byte, i int) (int, AST, error) {
 	}
 }
 
-func getByte(text []byte, i int) (int, byte, error) {
+func getByte(text []byte, i int) (int, byte, *ParseError) {
 	i, err := match(text, i, '\\')
 	if err == nil {
 		if i < len(text) && text[i] == 'n' {
@@ -297,7 +317,7 @@ func getByte(text []byte, i int) (int, byte, error) {
 	return i, text[i], nil
 }
 
-func charRange(text []byte, i int) (int, AST, error) {
+func charRange(text []byte, i int) (int, AST, *ParseError) {
 	i, err := match(text, i, '[')
 	if err != nil {
 		return i, nil, err
@@ -325,14 +345,14 @@ func charRange(text []byte, i int) (int, AST, error) {
 	return i, NewRange(S, T), err
 }
 
-func charNotRange(text []byte, i int) (int, AST, error) {
+func charNotRange(text []byte, i int) (int, AST, *ParseError) {
 	if i >= len(text) {
 		return i, nil, Errorf(text, i, "out of text, %d", i)
 	}
 	chs := make([]byte, 0, 10)
 	for ; i < len(text) && text[i] != ']'; i++ {
 		var b byte
-		var err error
+		var err *ParseError
 		i, b, err = getByte(text, i)
 		if err != nil {
 			return i, nil, err
