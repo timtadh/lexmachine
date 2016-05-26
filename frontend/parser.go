@@ -49,7 +49,31 @@ func errorf(pc uintptr, ok bool, text []byte, tc int, format string, args ...int
 	}
 }
 
-func linecol(text []byte, tc int) (line int, col int) {
+func (p *ParseError) Error() string {
+	errs := make([]string, 0, len(p.chain) + 1)
+	for i := len(p.chain)-1; i >= 0; i-- {
+		errs = append(errs, p.chain[i].Error())
+	}
+	errs = append(errs, p.error())
+	return strings.Join(errs, "\n")
+}
+
+func (p *ParseError) error() string {
+	line, col := LineCol(p.text, p.TC)
+	return fmt.Sprintf("Regex parse error in production '%v' : at index %v line %v column %v '%s' : %v",
+		p.Production, p.TC, line, col, p.text[p.TC:], p.Reason)
+}
+
+func (p *ParseError) String() string {
+	return p.Error()
+}
+
+func (p *ParseError) Chain(e *ParseError) *ParseError {
+	p.chain = append(p.chain, e)
+	return p
+}
+
+func LineCol(text []byte, tc int) (line int, col int) {
 	for i := 0; i <= tc && i < len(text); i++ {
 		if text[i] == '\n' {
 			col = 0
@@ -65,30 +89,6 @@ func linecol(text []byte, tc int) (line int, col int) {
 		}
 	}
 	return line, col
-}
-
-func (p *ParseError) Error() string {
-	errs := make([]string, 0, len(p.chain) + 1)
-	for i := len(p.chain)-1; i >= 0; i-- {
-		errs = append(errs, p.chain[i].Error())
-	}
-	errs = append(errs, p.error())
-	return strings.Join(errs, "\n")
-}
-
-func (p *ParseError) error() string {
-	line, col := linecol(p.text, p.TC)
-	return fmt.Sprintf("Regex parse error in production '%v' : at index %v line %v column %v '%s' : %v",
-		p.Production, p.TC, line, col, p.text[p.TC:], p.Reason)
-}
-
-func (p *ParseError) String() string {
-	return p.Error()
-}
-
-func (p *ParseError) Chain(e *ParseError) *ParseError {
-	p.chain = append(p.chain, e)
-	return p
 }
 
 
@@ -450,5 +450,4 @@ func (s sortableBytes) Swap(i, j int) {
 func (s sortableBytes) Less(i, j int) bool {
 	return s[i] < s[j]
 }
-
 

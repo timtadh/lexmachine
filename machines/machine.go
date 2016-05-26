@@ -5,14 +5,38 @@ import (
 	"bytes"
 )
 
-import (
-	"github.com/timtadh/data-structures/errors"
-)
+import ()
 
 import (
 	"github.com/timtadh/lexmachine/queue"
 	. "github.com/timtadh/lexmachine/inst"
 )
+
+type UnconsumedInput struct {
+	StartTC int
+	FailTC int
+	StartLine int
+	StartColumn int
+	FailLine int
+	FailColumn int
+	Text []byte
+}
+
+func (u *UnconsumedInput) Error() string {
+	min := func(a, b int) int {
+		if a < b {
+			return a
+		}
+		return b
+	}
+	stc := min(u.StartTC, len(u.Text)-1)
+	etc := min(u.FailTC, len(u.Text))
+	return fmt.Sprintf("Lexer error: could not match text starting at %v:%v failing at %v:%v.\n\tunmatched text: '%v'",
+		u.StartLine, u.StartColumn,
+		u.FailLine, u.FailColumn,
+		string(u.Text[stc:etc]),
+	)
+}
 
 type Match struct {
 	PC    int
@@ -109,6 +133,9 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 			match_tc = tc
 		}
 		for ; tc <= len(text); tc++ {
+			if cqueue.Empty() && match_pc == -1 {
+				break
+			}
 			for !cqueue.Empty() {
 				pc := cqueue.Pop()
 				inst := program[pc]
@@ -162,8 +189,18 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 			if match_tc == -1 {
 				match_tc = 0
 			}
-			line, col = compute_lc(text, 0, match_tc, 1, 1)
-			return tc, nil, errors.Errorf("Unconsumed text, %d (%d, %d), '%s'", match_tc, line, col, text[match_tc:]), scan
+			sline, scol := compute_lc(text, 0, start_tc, 1, 1)
+			fline, fcol := compute_lc(text, 0, tc, 1, 1)
+			err := &UnconsumedInput{
+				StartTC: start_tc,
+				FailTC: tc,
+				StartLine: sline,
+				StartColumn: scol,
+				FailLine: fline,
+				FailColumn: fcol,
+				Text: text,
+			}
+			return tc, nil, err, scan
 		} else {
 			return tc, nil, nil, nil
 		}
