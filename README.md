@@ -16,6 +16,13 @@ framework also supports sub lexers and non-regular lexing through an
 bytes after a match. So if you want to support nested C-style comments
 or other paired structures you can do so at the lexical analysis stage.
 
+## Documentation
+
+- [Tutorial](http://hackthology.com/writing-a-lexer-in-go-with-lexmachine.html)
+- [![GoDoc](https://godoc.org/github.com/timtadh/lexmachine?status.svg)](https://godoc.org/github.com/timtadh/lexmachine)
+
+## History
+
 This library was written when I was teaching EECS 337 *Compiler Design
 and Implementation* at Case Western Reserve University in Fall of 2014.
 It wrote two compilers one was "hidden" from the students  as the
@@ -24,6 +31,8 @@ language implemented was their project language. The other was
 an example of how to do type checking. That compiler was later expanded
 to explain AST interpretation, intermediate code generation, and x86
 code generation.
+
+## What is in Box
 
 `lexmachine` includes the following components
 
