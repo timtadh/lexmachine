@@ -2,14 +2,13 @@ package main
 
 import (
 	"fmt"
-	"os"
 	logpkg "log"
+	"os"
 )
 
 import (
 	"github.com/timtadh/getopt"
 )
-
 
 import (
 	"github.com/timtadh/lexmachine/frontend"
@@ -35,16 +34,15 @@ Specs
 `
 
 func Usage(code int) {
-    fmt.Fprintln(os.Stderr, UsageMessage)
-    if code == 0 {
-        fmt.Fprintln(os.Stderr, ExtendedMessage)
-        code = 1
-    } else {
-        fmt.Fprintln(os.Stderr, "Try -h or --help for help")
-    }
-    os.Exit(code)
+	fmt.Fprintln(os.Stderr, UsageMessage)
+	if code == 0 {
+		fmt.Fprintln(os.Stderr, ExtendedMessage)
+		code = 1
+	} else {
+		fmt.Fprintln(os.Stderr, "Try -h or --help for help")
+	}
+	os.Exit(code)
 }
-
 
 func main() {
 
@@ -60,11 +58,11 @@ func main() {
 		Usage(1)
 	}
 
-
 	patterns := make([]string, 0, 10)
 	for _, oa := range optargs {
 		switch oa.Opt() {
-		case "-h", "--help": Usage(0)
+		case "-h", "--help":
+			Usage(0)
 		case "-p", "--pattern":
 			patterns = append(patterns, oa.Arg())
 		}
@@ -85,7 +83,7 @@ func main() {
 	}
 
 	lexast := asts[len(asts)-1]
-	for i := len(asts)-2; i >= 0; i-- {
+	for i := len(asts) - 2; i >= 0; i-- {
 		lexast = frontend.NewAltMatch(asts[i], lexast)
 	}
 
@@ -96,4 +94,3 @@ func main() {
 
 	fmt.Println(program.Serialize())
 }
-

@@ -4,8 +4,8 @@ import "testing"
 import "github.com/timtadh/data-structures/test"
 
 import (
-	"github.com/timtadh/lexmachine/machines"
 	"github.com/timtadh/lexmachine/inst"
+	"github.com/timtadh/lexmachine/machines"
 )
 
 func TestParse(x *testing.T) {
@@ -23,7 +23,7 @@ func TestParse(x *testing.T) {
 }
 
 func t_match(program inst.InstSlice, text string, t *test.T) {
-	expected := []machines.Match{machines.Match{len(program)-1, 0, 1, 1, 1, len(text), []byte(text)}}
+	expected := []machines.Match{machines.Match{len(program) - 1, 0, 1, 1, 1, len(text), []byte(text)}}
 	if expected[0].EndColumn == 0 {
 		expected[0].EndColumn = 1
 	}
@@ -104,7 +104,6 @@ func TestParseConcatAltMaybes(x *testing.T) {
 	t_match(program, "CD", t)
 }
 
-
 func TestParseConcatAltPlus(x *testing.T) {
 	t := (*test.T)(x)
 	ast, err := Parse([]byte("(A|(B|C))+(D|E?)"))
@@ -181,7 +180,6 @@ func TestIdent(x *testing.T) {
 	t_match(program, "AAACC", t)
 }
 
-
 func TestLineComment(x *testing.T) {
 	t := (*test.T)(x)
 	ast, err := Parse([]byte("//[^\n]*"))
@@ -201,4 +199,3 @@ func TestLineComment(x *testing.T) {
 	t.Log(program)
 	t_match(program, "// adfawefawe awe", t)
 }
-

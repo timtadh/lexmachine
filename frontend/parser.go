@@ -3,22 +3,21 @@ package frontend
 import (
 	"fmt"
 	"log"
+	"runtime"
 	"sort"
 	"strings"
-	"runtime"
 )
-
 
 var (
 	DEBUG = false
 )
 
 type ParseError struct {
-	Reason string
+	Reason     string
 	Production string
-	TC int
-	text []byte
-	chain []*ParseError
+	TC         int
+	text       []byte
+	chain      []*ParseError
 }
 
 func Errorf(text []byte, tc int, format string, args ...interface{}) *ParseError {
@@ -40,16 +39,16 @@ func errorf(pc uintptr, ok bool, text []byte, tc int, format string, args ...int
 	}
 	msg := fmt.Sprintf(format, args...)
 	return &ParseError{
-		Reason: msg,
+		Reason:     msg,
 		Production: fn,
-		TC: tc,
-		text: text,
+		TC:         tc,
+		text:       text,
 	}
 }
 
 func (p *ParseError) Error() string {
-	errs := make([]string, 0, len(p.chain) + 1)
-	for i := len(p.chain)-1; i >= 0; i-- {
+	errs := make([]string, 0, len(p.chain)+1)
+	for i := len(p.chain) - 1; i >= 0; i-- {
 		errs = append(errs, p.chain[i].Error())
 	}
 	errs = append(errs, p.error())
@@ -89,10 +88,9 @@ func LineCol(text []byte, tc int) (line int, col int) {
 	return line, col
 }
 
-
 func Parse(text []byte) (AST, error) {
 	a, err := (&parser{
-		text: text,
+		text:      text,
 		lastError: Errorf(text, 0, "unconsumed input"),
 	}).regex()
 	if err != nil {
@@ -102,7 +100,7 @@ func Parse(text []byte) (AST, error) {
 }
 
 type parser struct {
-	text []byte
+	text      []byte
 	lastError *ParseError
 }
 
@@ -297,16 +295,16 @@ func (p *parser) CHAR(i int) (int, AST, *ParseError) {
 		if err != nil {
 			return i, nil, err
 		}
-		return i+1, NewCharacter(b), nil
+		return i + 1, NewCharacter(b), nil
 	}
 	switch p.text[i] {
-	case '|','+','*','?','(',')','[',']', '^':
-		return i, nil, Errorf(p.text, i, 
+	case '|', '+', '*', '?', '(', ')', '[', ']', '^':
+		return i, nil, Errorf(p.text, i,
 			"unexpected operator, %s", string([]byte{p.text[i]}))
 	case '.':
-		return i+1, NewAny(), nil
+		return i + 1, NewAny(), nil
 	default:
-		return i+1, NewCharacter(p.text[i]), nil
+		return i + 1, NewCharacter(p.text[i]), nil
 	}
 }
 
@@ -390,9 +388,9 @@ func (p *parser) charNotRange(i int) (int, AST, *ParseError) {
 		if prev == ch {
 			goto loop_inc
 		}
-		ranges = append(ranges, &Range{From: prev, To: ch-1})
-		loop_inc:
-			prev = ch+1
+		ranges = append(ranges, &Range{From: prev, To: ch - 1})
+	loop_inc:
+		prev = ch + 1
 	}
 	ast := NewAlternation(
 		ranges[len(ranges)-1],
@@ -411,7 +409,7 @@ func (p *parser) match_any(i int) (int, AST, *ParseError) {
 	if i >= len(p.text) {
 		return i, nil, Errorf(p.text, i, "out of p.text, %d", i)
 	}
-	return i+1, NewCharacter(p.text[i]), nil
+	return i + 1, NewCharacter(p.text[i]), nil
 }
 
 func (p *parser) match(i int, c byte) (int, *ParseError) {
@@ -422,13 +420,13 @@ func (p *parser) match(i int, c byte) (int, *ParseError) {
 		return i, nil
 	}
 	return i,
-	matchErrorf(p.text, i, 
-		"expected '%v' at %v got '%v' of '%v'",
-		string([]byte{c}),
-		i,
-		string(p.text[i:i+1]),
-		string(p.text[i:]),
-	)
+		matchErrorf(p.text, i,
+			"expected '%v' at %v got '%v' of '%v'",
+			string([]byte{c}),
+			i,
+			string(p.text[i:i+1]),
+			string(p.text[i:]),
+		)
 }
 
 func sortBytes(bytes sortableBytes) {
@@ -448,4 +446,3 @@ func (s sortableBytes) Swap(i, j int) {
 func (s sortableBytes) Less(i, j int) bool {
 	return s[i] < s[j]
 }
-

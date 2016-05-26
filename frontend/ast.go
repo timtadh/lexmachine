@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-type AST interface{
+type AST interface {
 	String() string
 }
 
@@ -75,7 +75,7 @@ func (self *Concat) String() string {
 
 type Range struct {
 	From byte
-	To byte
+	To   byte
 }
 
 func (self *Range) String() string {
@@ -168,4 +168,3 @@ func NewAny() AST {
 func NewRange(from, to AST) AST {
 	return &Range{from.(*Character).Char, to.(*Character).Char}
 }
-

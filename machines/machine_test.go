@@ -3,7 +3,6 @@ package machines
 import "testing"
 import "github.com/timtadh/lexmachine/inst"
 
-
 func TestLexerMatch(t *testing.T) {
 	text := []byte("ababcbcbb")
 	//. (a|b)*cba?(c|b)bb
@@ -190,7 +189,7 @@ func TestLexerRestart(t *testing.T) {
 	check(m, i, err)
 	i -= 2
 
-	tc, m, err, scan = scan(tc-10) // backtrack
+	tc, m, err, scan = scan(tc - 10) // backtrack
 	check(m, i, err)
 	i++
 
@@ -202,7 +201,7 @@ func TestLexerRestart(t *testing.T) {
 	check(m, i, err)
 	i--
 
-	tc, m, err, scan = scan(tc-4)
+	tc, m, err, scan = scan(tc - 4)
 	check(m, i, err)
 	i++
 
@@ -218,5 +217,3 @@ func TestLexerRestart(t *testing.T) {
 		t.Error("unconsumed matches", expected[i-1:])
 	}
 }
-
-

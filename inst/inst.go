@@ -13,9 +13,9 @@ const (
 )
 
 type Inst struct {
-	Op  uint8
-	X   uint32
-	Y   uint32
+	Op uint8
+	X  uint32
+	Y  uint32
 }
 
 type InstSlice []*Inst

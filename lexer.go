@@ -1,25 +1,25 @@
 package lexmachine
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 )
 
 import (
 	"github.com/timtadh/lexmachine/frontend"
-	"github.com/timtadh/lexmachine/machines"
 	"github.com/timtadh/lexmachine/inst"
+	"github.com/timtadh/lexmachine/machines"
 )
 
 type Token struct {
-	Type int
-	Value interface{}
-	Lexeme []byte
-	TC int
-	StartLine int
+	Type        int
+	Value       interface{}
+	Lexeme      []byte
+	TC          int
+	StartLine   int
 	StartColumn int
-	EndLine int
-	EndColumn int
+	EndLine     int
+	EndColumn   int
 }
 
 func (self *Token) Equals(other *Token) bool {
@@ -30,13 +30,13 @@ func (self *Token) Equals(other *Token) bool {
 	} else if other == nil {
 		return false
 	}
-	return self.TC == other.TC && 
-			self.StartLine == other.StartLine &&
-			self.StartColumn == other.StartColumn &&
-			self.EndLine == other.EndLine &&
-			self.EndColumn == other.EndColumn &&
-			bytes.Equal(self.Lexeme, other.Lexeme) &&
-			self.Type == other.Type
+	return self.TC == other.TC &&
+		self.StartLine == other.StartLine &&
+		self.StartColumn == other.StartColumn &&
+		self.EndLine == other.EndLine &&
+		self.EndColumn == other.EndColumn &&
+		bytes.Equal(self.Lexeme, other.Lexeme) &&
+		self.Type == other.Type
 }
 
 func (self *Token) String() string {
@@ -46,25 +46,25 @@ func (self *Token) String() string {
 type Action func(scan *Scanner, match *machines.Match) (interface{}, error)
 
 type Pattern struct {
-	regex []byte
+	regex  []byte
 	action Action
 }
 
 type Lexer struct {
 	patterns []*Pattern
-	matches map[int]int "match_idx -> pat_idx"
-	program inst.InstSlice
+	matches  map[int]int "match_idx -> pat_idx"
+	program  inst.InstSlice
 }
 
 type Scanner struct {
-	lexer *Lexer
-	scan machines.Scanner
-	Text []byte
-	TC int
-	pTC int
-	s_line int
+	lexer    *Lexer
+	scan     machines.Scanner
+	Text     []byte
+	TC       int
+	pTC      int
+	s_line   int
 	s_column int
-	e_line int
+	e_line   int
 	e_column int
 }
 
@@ -98,14 +98,14 @@ func (self *Scanner) Next() (tok interface{}, err error, eof bool) {
 
 func (self *Scanner) Token(typ int, value interface{}, m *machines.Match) *Token {
 	return &Token{
-		Type: typ,
-		Value: value,
-		Lexeme: m.Bytes,
-		TC: m.TC,
-		StartLine: m.StartLine,
+		Type:        typ,
+		Value:       value,
+		Lexeme:      m.Bytes,
+		TC:          m.TC,
+		StartLine:   m.StartLine,
 		StartColumn: m.StartColumn,
-		EndLine: m.EndLine,
-		EndColumn: m.EndColumn,
+		EndLine:     m.EndLine,
+		EndColumn:   m.EndColumn,
 	}
 }
 
@@ -127,9 +127,9 @@ func (self *Lexer) Scanner(text []byte) (*Scanner, error) {
 
 	return &Scanner{
 		lexer: self,
-		scan: scan,
-		Text: text_copy,
-		TC: 0,
+		scan:  scan,
+		Text:  text_copy,
+		TC:    0,
 	}, nil
 }
 
@@ -156,7 +156,7 @@ func (self *Lexer) Compile() error {
 	}
 
 	lexast := asts[len(asts)-1]
-	for i := len(asts)-2; i >= 0; i-- {
+	for i := len(asts) - 2; i >= 0; i-- {
 		lexast = frontend.NewAltMatch(asts[i], lexast)
 	}
 
@@ -182,4 +182,3 @@ func (self *Lexer) Compile() error {
 
 	return nil
 }
-

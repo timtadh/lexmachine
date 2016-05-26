@@ -1,25 +1,25 @@
 package machines
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 )
 
 import ()
 
 import (
-	"github.com/timtadh/lexmachine/queue"
 	. "github.com/timtadh/lexmachine/inst"
+	"github.com/timtadh/lexmachine/queue"
 )
 
 type UnconsumedInput struct {
-	StartTC int
-	FailTC int
-	StartLine int
+	StartTC     int
+	FailTC      int
+	StartLine   int
 	StartColumn int
-	FailLine int
-	FailColumn int
-	Text []byte
+	FailLine    int
+	FailColumn  int
+	Text        []byte
 }
 
 func (u *UnconsumedInput) Error() string {
@@ -39,13 +39,13 @@ func (u *UnconsumedInput) Error() string {
 }
 
 type Match struct {
-	PC    int
-	TC    int
-	StartLine  int
+	PC          int
+	TC          int
+	StartLine   int
 	StartColumn int
-	EndLine  int
-	EndColumn int
-	Bytes []byte
+	EndLine     int
+	EndColumn   int
+	Bytes       []byte
 }
 
 func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
@@ -67,7 +67,7 @@ func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
 		}
 		return line, col
 	}
-	for i := prev_tc+1; i <= tc && i < len(text); i++ {
+	for i := prev_tc + 1; i <= tc && i < len(text); i++ {
 		if text[i] == '\n' {
 			col = 0
 			line += 1
@@ -92,19 +92,19 @@ func (self *Match) Equals(other *Match) bool {
 	} else if other == nil {
 		return false
 	}
-	return self.PC == other.PC && 
-			self.StartLine == other.StartLine &&
-			self.StartColumn == other.StartColumn &&
-			self.EndLine == other.EndLine &&
-			self.EndColumn == other.EndColumn &&
-			bytes.Equal(self.Bytes, other.Bytes)
+	return self.PC == other.PC &&
+		self.StartLine == other.StartLine &&
+		self.StartColumn == other.StartColumn &&
+		self.EndLine == other.EndLine &&
+		self.EndColumn == other.EndColumn &&
+		bytes.Equal(self.Bytes, other.Bytes)
 }
 
 func (self Match) String() string {
 	return fmt.Sprintf("<Match %d %d (%d, %d)-(%d, %d) '%v'>", self.PC, self.TC, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn, string(self.Bytes))
 }
 
-type Scanner func(int)(int, *Match, error, Scanner)
+type Scanner func(int) (int, *Match, error, Scanner)
 
 func LexerEngine(program InstSlice, text []byte) Scanner {
 	var cqueue, nqueue *queue.Queue = queue.New(), queue.New()
@@ -143,7 +143,7 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 				case CHAR:
 					x := byte(inst.X)
 					y := byte(inst.Y)
-					if tc < len(text) && x <= text[tc] && text[tc] <= y  {
+					if tc < len(text) && x <= text[tc] && text[tc] <= y {
 						nqueue.Push(pc + 1)
 					}
 				case MATCH:
@@ -166,13 +166,13 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 				line, col = compute_lc(text, prev_tc, start_tc, line, col)
 				e_line, e_col := compute_lc(text, start_tc, match_tc-1, line, col)
 				match := &Match{
-					PC: match_pc,
-					TC: start_tc,
-					StartLine: line,
+					PC:          match_pc,
+					TC:          start_tc,
+					StartLine:   line,
 					StartColumn: col,
-					EndLine: e_line,
-					EndColumn: e_col,
-					Bytes: text[start_tc:match_tc],
+					EndLine:     e_line,
+					EndColumn:   e_col,
+					Bytes:       text[start_tc:match_tc],
 				}
 				cqueue.Push(0)
 				prev_tc = start_tc
@@ -192,13 +192,13 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 			sline, scol := compute_lc(text, 0, start_tc, 1, 1)
 			fline, fcol := compute_lc(text, 0, tc, 1, 1)
 			err := &UnconsumedInput{
-				StartTC: start_tc,
-				FailTC: tc,
-				StartLine: sline,
+				StartTC:     start_tc,
+				FailTC:      tc,
+				StartLine:   sline,
 				StartColumn: scol,
-				FailLine: fline,
-				FailColumn: fcol,
-				Text: text,
+				FailLine:    fline,
+				FailColumn:  fcol,
+				Text:        text,
 			}
 			return tc, nil, err, scan
 		} else {
@@ -207,4 +207,3 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 	}
 	return scan
 }
-
