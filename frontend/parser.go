@@ -2,14 +2,12 @@ package frontend
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"runtime"
 )
 
-import (
-	"github.com/timtadh/data-structures/errors"
-)
 
 var (
 	DEBUG = false
@@ -120,7 +118,7 @@ func (p *parser) regex() (AST, *ParseError) {
 
 func (p *parser) alternation(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter alternation %v '%v'", i, string(p.text[i:]))
+		log.Printf("enter alternation %v '%v'", i, string(p.text[i:]))
 	}
 	i, A, err := p.atomicOps(i)
 	if err != nil {
@@ -135,7 +133,7 @@ func (p *parser) alternation(i int) (int, AST, *ParseError) {
 
 func (p *parser) alternation_(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter alternation_ %v '%v'", i, string(p.text[i:]))
+		log.Printf("enter alternation_ %v '%v'", i, string(p.text[i:]))
 	}
 	if i >= len(p.text) {
 		return i, nil, nil
@@ -157,7 +155,7 @@ func (p *parser) alternation_(i int) (int, AST, *ParseError) {
 
 func (p *parser) atomicOps(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter atomicOps %v '%v'", i, string(p.text[i:]))
+		log.Printf("enter atomicOps %v '%v'", i, string(p.text[i:]))
 	}
 	if i >= len(p.text) {
 		return i, nil, nil
@@ -176,11 +174,11 @@ func (p *parser) atomicOps(i int) (int, AST, *ParseError) {
 
 func (p *parser) atomicOp(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter atomicOp %v '%v'", i, string(p.text[i:]))
+		log.Printf("enter atomicOp %v '%v'", i, string(p.text[i:]))
 	}
 	i, A, err := p.atomic(i)
 	if DEBUG {
-		errors.Logf("DEBUG", "atomic %v", err)
+		log.Printf("atomic %v", err)
 	}
 	if err != nil {
 		return i, nil, err
@@ -196,7 +194,7 @@ func (p *parser) atomicOp(i int) (int, AST, *ParseError) {
 
 func (p *parser) op(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter op %v '%v'", i, string(p.text[i:]))
+		log.Printf("enter op %v '%v'", i, string(p.text[i:]))
 	}
 	i, err := p.match(i, '+')
 	if err == nil {
@@ -215,28 +213,28 @@ func (p *parser) op(i int) (int, AST, *ParseError) {
 
 func (p *parser) atomic(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter atomic %v '%v'", i, string(p.text[i:]))
+		log.Printf("enter atomic %v '%v'", i, string(p.text[i:]))
 	}
 	i, ast, errChar := p.char(i)
 	if errChar == nil {
 		return i, ast, nil
 	}
 	if DEBUG {
-		errors.Logf("DEBUG", "char %v", errChar)
+		log.Printf("char %v", errChar)
 	}
 	i, ast, errGroup := p.group(i)
 	if errGroup == nil {
 		return i, ast, nil
 	}
 	if DEBUG {
-		errors.Logf("DEBUG", "group %v", errGroup)
+		log.Printf("group %v", errGroup)
 	}
 	return i, nil, Errorf(p.text, i, "Expected group or char").Chain(errChar).Chain(errGroup)
 }
 
 func (p *parser) group(j int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter group %v '%v'", j, string(p.text[j:]))
+		log.Printf("enter group %v '%v'", j, string(p.text[j:]))
 	}
 	i, err := p.match(j, '(')
 	if err != nil {
@@ -255,7 +253,7 @@ func (p *parser) group(j int) (int, AST, *ParseError) {
 
 func (p *parser) concat(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter concat %v '%v'", i, string(p.text[i:]))
+		log.Printf("enter concat %v '%v'", i, string(p.text[i:]))
 	}
 	if i >= len(p.text) {
 		return i, nil, nil
@@ -273,7 +271,7 @@ func (p *parser) concat(i int) (int, AST, *ParseError) {
 
 func (p *parser) char(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter char %v '%v'", i, string(p.text[i:]))
+		log.Printf("enter char %v '%v'", i, string(p.text[i:]))
 	}
 	i, C, errCHAR := p.CHAR(i)
 	if errCHAR == nil {
@@ -289,7 +287,7 @@ func (p *parser) char(i int) (int, AST, *ParseError) {
 
 func (p *parser) CHAR(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter CHAR %v '%v'", i, string(p.text[i:]))
+		log.Printf("enter CHAR %v '%v'", i, string(p.text[i:]))
 	}
 	if i >= len(p.text) {
 		return i, nil, Errorf(p.text, i, "out of input %v, %v", i, string(p.text))
@@ -332,7 +330,7 @@ func (p *parser) getByte(i int) (int, byte, *ParseError) {
 
 func (p *parser) charRange(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter charRange %v '%v'", i, string(p.text[i:]))
+		log.Printf("enter charRange %v '%v'", i, string(p.text[i:]))
 	}
 	i, err := p.match(i, '[')
 	if err != nil {
@@ -363,7 +361,7 @@ func (p *parser) charRange(i int) (int, AST, *ParseError) {
 
 func (p *parser) charNotRange(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		errors.Logf("DEBUG", "enter charNotRange %v '%v'", i, string(p.text[i:]))
+		log.Printf("enter charNotRange %v '%v'", i, string(p.text[i:]))
 	}
 	if i >= len(p.text) {
 		return i, nil, Errorf(p.text, i, "out of p.text, %d", i)
