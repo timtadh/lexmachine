@@ -1,14 +1,12 @@
 Regex : Alternation
 
-Alternation : Choice Alternation'
+Alternation : AtomicOps Alternation'
 
-Alternation' : '|' Choice Alternation'
-             : e
+Alternation' : '|' AtomicOps Alternation'
+             | e
 
-Choice : AtomicOp Choice'
-
-Choice' : AtomicOp Choice'
-        | e
+AtomicOps : AtomicOp AtomicOps
+          | e
 
 AtomicOp : Atomic
          | Atomic Op
@@ -22,13 +20,17 @@ Op : '+'
 
 Group : '(' Alternation ')'
 
-Concat : Char Concat'
-
-Concat' : Char Concat'
-        | e
+Concat : Char Concat
+       | e
 
 Char : CHAR
      | CharRange
 
-CharRange : '[' CHAR '-' CHAR ']'
+CharRange : '[' RangeInner ']'
+          | '[' '^' RangeInner ']'
 
+RangeInner : RangeComponent RangeInner
+           | e
+
+RangeComponent : CHAR
+               | CHAR '-' CHAR

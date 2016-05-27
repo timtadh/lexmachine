@@ -1,25 +1,25 @@
 package lexmachine
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 )
 
 import (
 	"github.com/timtadh/lexmachine/frontend"
-	"github.com/timtadh/lexmachine/machines"
 	"github.com/timtadh/lexmachine/inst"
+	"github.com/timtadh/lexmachine/machines"
 )
 
 type Token struct {
-	Type int
-	Value interface{}
-	Lexeme []byte
-	TC int
-	StartLine int
+	Type        int
+	Value       interface{}
+	Lexeme      []byte
+	TC          int
+	StartLine   int
 	StartColumn int
-	EndLine int
-	EndColumn int
+	EndLine     int
+	EndColumn   int
 }
 
 func (self *Token) Equals(other *Token) bool {
@@ -30,13 +30,13 @@ func (self *Token) Equals(other *Token) bool {
 	} else if other == nil {
 		return false
 	}
-	return self.TC == other.TC && 
-			self.StartLine == other.StartLine &&
-			self.StartColumn == other.StartColumn &&
-			self.EndLine == other.EndLine &&
-			self.EndColumn == other.EndColumn &&
-			bytes.Equal(self.Lexeme, other.Lexeme) &&
-			self.Type == other.Type
+	return self.TC == other.TC &&
+		self.StartLine == other.StartLine &&
+		self.StartColumn == other.StartColumn &&
+		self.EndLine == other.EndLine &&
+		self.EndColumn == other.EndColumn &&
+		bytes.Equal(self.Lexeme, other.Lexeme) &&
+		self.Type == other.Type
 }
 
 func (self *Token) String() string {
@@ -46,25 +46,25 @@ func (self *Token) String() string {
 type Action func(scan *Scanner, match *machines.Match) (interface{}, error)
 
 type Pattern struct {
-	regex []byte
+	regex  []byte
 	action Action
 }
 
 type Lexer struct {
 	patterns []*Pattern
-	matches map[int]int "match_idx -> pat_idx"
-	program inst.InstSlice
+	matches  map[int]int "match_idx -> pat_idx"
+	program  inst.InstSlice
 }
 
 type Scanner struct {
-	lexer *Lexer
-	scan machines.Scanner
-	Text []byte
-	TC int
-	pTC int
-	s_line int
+	lexer    *Lexer
+	scan     machines.Scanner
+	Text     []byte
+	TC       int
+	pTC      int
+	s_line   int
 	s_column int
-	e_line int
+	e_line   int
 	e_column int
 }
 
@@ -96,16 +96,16 @@ func (self *Scanner) Next() (tok interface{}, err error, eof bool) {
 	return token, nil, false
 }
 
-func (self *Scanner) Token(typ int, value interface{}, lexeme []byte) *Token {
+func (self *Scanner) Token(typ int, value interface{}, m *machines.Match) *Token {
 	return &Token{
-		Type: typ,
-		Value: value,
-		Lexeme: lexeme,
-		TC: self.pTC,
-		StartLine: self.s_line,
-		StartColumn: self.s_column,
-		EndLine: self.e_line,
-		EndColumn: self.e_column,
+		Type:        typ,
+		Value:       value,
+		Lexeme:      m.Bytes,
+		TC:          m.TC,
+		StartLine:   m.StartLine,
+		StartColumn: m.StartColumn,
+		EndLine:     m.EndLine,
+		EndColumn:   m.EndColumn,
 	}
 }
 
@@ -114,11 +114,9 @@ func NewLexer() *Lexer {
 }
 
 func (self *Lexer) Scanner(text []byte) (*Scanner, error) {
-	if self.program == nil || len(self.patterns) != len(self.matches) {
-		err := self.Compile()
-		if err != nil {
-			return nil, err
-		}
+	err := self.Compile()
+	if err != nil {
+		return nil, err
 	}
 
 	scan := machines.LexerEngine(self.program, text)
@@ -129,9 +127,9 @@ func (self *Lexer) Scanner(text []byte) (*Scanner, error) {
 
 	return &Scanner{
 		lexer: self,
-		scan: scan,
-		Text: text_copy,
-		TC: 0,
+		scan:  scan,
+		Text:  text_copy,
+		TC:    0,
 	}, nil
 }
 
@@ -144,6 +142,9 @@ func (self *Lexer) Compile() error {
 	if len(self.patterns) == 0 {
 		return fmt.Errorf("No patterns added")
 	}
+	if self.program != nil {
+		return nil
+	}
 
 	asts := make([]frontend.AST, 0, len(self.patterns))
 	for _, p := range self.patterns {
@@ -155,16 +156,21 @@ func (self *Lexer) Compile() error {
 	}
 
 	lexast := asts[len(asts)-1]
-	for i := len(asts)-2; i >= 0; i-- {
+	for i := len(asts) - 2; i >= 0; i-- {
 		lexast = frontend.NewAltMatch(asts[i], lexast)
 	}
 
-	program, err := frontend.Generate(lexast)
+	nfa, err := frontend.Generate(lexast)
 	if err != nil {
 		return err
 	}
 
-	self.program = program
+	// TODO: DFA contruction needs to track NFA MATCH identity before this will
+	// work correctly.
+	//dfa := machines.ToDFA(nfa)
+	//self.program = dfa
+
+	self.program = nfa
 	self.matches = make(map[int]int)
 
 	ast := 0
@@ -176,9 +182,8 @@ func (self *Lexer) Compile() error {
 	}
 
 	if len(asts) != ast {
-		panic("len(asts) != ast")
+		panic(fmt.Sprintf("len(asts) != ast, %v != %v", len(asts), ast))
 	}
 
 	return nil
 }
-

@@ -2,107 +2,187 @@ package frontend
 
 import (
 	"fmt"
+	"log"
+	"runtime"
+	"sort"
+	"strings"
 )
 
 var (
-	ErrorNoOp = fmt.Errorf("No Operator")
+	DEBUG = false
 )
 
-func match_any(text []byte, i int) (int, AST, error) {
-	if i >= len(text) {
-		return i, nil, fmt.Errorf("out of text, %d", i)
-	}
-	return i+1, NewCharacter(text[i]), nil
+type ParseError struct {
+	Reason     string
+	Production string
+	TC         int
+	text       []byte
+	chain      []*ParseError
 }
 
-func match(text []byte, i int, c byte) (int, error) {
-	if i >= len(text) {
-		return i, fmt.Errorf("out of text, %d", i)
-	} else if text[i] == c {
-		i++
-		return i, nil
+func Errorf(text []byte, tc int, format string, args ...interface{}) *ParseError {
+	pc, _, _, ok := runtime.Caller(1)
+	return errorf(pc, ok, text, tc, format, args...)
+}
+
+func matchErrorf(text []byte, tc int, format string, args ...interface{}) *ParseError {
+	pc, _, _, ok := runtime.Caller(2)
+	return errorf(pc, ok, text, tc, format, args...)
+}
+
+func errorf(pc uintptr, ok bool, text []byte, tc int, format string, args ...interface{}) *ParseError {
+	var fn string = "unknown"
+	if ok {
+		fn = runtime.FuncForPC(pc).Name()
+		split := strings.Split(fn, ".")
+		fn = split[len(split)-1]
 	}
-	return i,
-	fmt.Errorf(
-		"Expected text at pos, %d, to equal %s, got %s",
-		i,
-		string([]byte{c}),
-		string(text[i:i+1]),
-	)
+	msg := fmt.Sprintf(format, args...)
+	return &ParseError{
+		Reason:     msg,
+		Production: fn,
+		TC:         tc,
+		text:       text,
+	}
+}
+
+func (p *ParseError) Error() string {
+	errs := make([]string, 0, len(p.chain)+1)
+	for i := len(p.chain) - 1; i >= 0; i-- {
+		errs = append(errs, p.chain[i].Error())
+	}
+	errs = append(errs, p.error())
+	return strings.Join(errs, "\n")
+}
+
+func (p *ParseError) error() string {
+	line, col := LineCol(p.text, p.TC)
+	return fmt.Sprintf("Regex parse error in production '%v' : at index %v line %v column %v '%s' : %v",
+		p.Production, p.TC, line, col, p.text[p.TC:], p.Reason)
+}
+
+func (p *ParseError) String() string {
+	return p.Error()
+}
+
+func (p *ParseError) Chain(e *ParseError) *ParseError {
+	p.chain = append(p.chain, e)
+	return p
+}
+
+func LineCol(text []byte, tc int) (line int, col int) {
+	for i := 0; i <= tc && i < len(text); i++ {
+		if text[i] == '\n' {
+			col = 0
+			line += 1
+		} else {
+			col += 1
+		}
+	}
+	if tc == 0 && tc < len(text) {
+		if text[tc] == '\n' {
+			line += 1
+			col -= 1
+		}
+	}
+	return line, col
 }
 
 func Parse(text []byte) (AST, error) {
-	return regex(text)
-}
-
-func regex(text []byte) (AST, error) {
-	i, ast, err := alternation(text, 0)
+	a, err := (&parser{
+		text:      text,
+		lastError: Errorf(text, 0, "unconsumed input"),
+	}).regex()
 	if err != nil {
 		return nil, err
-	} else if i != len(text) {
-		return nil, fmt.Errorf("unconsumed input")
+	}
+	return a, nil
+}
+
+type parser struct {
+	text      []byte
+	lastError *ParseError
+}
+
+func (p *parser) regex() (AST, *ParseError) {
+	i, ast, err := p.alternation(0)
+	if err != nil {
+		return nil, err
+	} else if i != len(p.text) {
+		return nil, p.lastError
 	}
 	return NewMatch(ast), nil
 }
 
-func alternation(text []byte, i int) (int, AST, error) {
-	return _alt(text, i)
-}
-
-func _alt(text []byte, i int) (int, AST, error) {
-	i, C, err := choice(text, i)
+func (p *parser) alternation(i int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter alternation %v '%v'", i, string(p.text[i:]))
+	}
+	i, A, err := p.atomicOps(i)
 	if err != nil {
 		return i, nil, err
 	}
-	i, A, err := alternation_(text, i)
+	i, B, err := p.alternation_(i)
 	if err != nil {
 		return i, nil, err
 	}
-	return i, NewAlternation(C, A), nil
+	return i, NewAlternation(A, B), nil
 }
 
-func alternation_(text []byte, i int) (int, AST, error) {
-	if i >= len(text) {
+func (p *parser) alternation_(i int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter alternation_ %v '%v'", i, string(p.text[i:]))
+	}
+	if i >= len(p.text) {
 		return i, nil, nil
 	}
-	i, err := match(text, i, '|')
+	i, err := p.match(i, '|')
 	if err != nil {
 		return i, nil, nil
 	}
-	return _alt(text, i)
-}
-
-func choice(text []byte, i int) (int, AST, error) {
-	return _choice(text, i)
-}
-
-func _choice(text []byte, i int) (int, AST, error) {
-	i, A, err := atomicOp(text, i)
+	i, A, err := p.atomicOps(i)
 	if err != nil {
 		return i, nil, err
 	}
-	i, C, err := choice_(text, i)
+	i, B, err := p.alternation_(i)
 	if err != nil {
 		return i, nil, err
 	}
-	return i, NewConcat(A, C), nil
+	return i, NewAlternation(A, B), nil
 }
 
-func choice_(text []byte, i int) (int, AST, error) {
-	if i >= len(text) {
+func (p *parser) atomicOps(i int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter atomicOps %v '%v'", i, string(p.text[i:]))
+	}
+	if i >= len(p.text) {
 		return i, nil, nil
 	}
-	i, C, _ := _choice(text, i)
-	return i, C, nil
-}
-
-func atomicOp(text []byte, i int) (int, AST, error) {
-	i, A, err := atomic(text, i)
+	i, A, err := p.atomicOp(i)
+	if err != nil {
+		p.lastError.Chain(err)
+		return i, nil, nil
+	}
+	i, B, err := p.atomicOps(i)
 	if err != nil {
 		return i, nil, err
 	}
-	i, O, err := op(text, i)
-	if err != nil && err == ErrorNoOp {
+	return i, NewConcat(A, B), nil
+}
+
+func (p *parser) atomicOp(i int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter atomicOp %v '%v'", i, string(p.text[i:]))
+	}
+	i, A, err := p.atomic(i)
+	if DEBUG {
+		log.Printf("atomic %v", err)
+	}
+	if err != nil {
+		return i, nil, err
+	}
+	i, O, err := p.op(i)
+	if err != nil && err.Reason == "No Operator" {
 		return i, A, nil
 	} else if err != nil {
 		return i, A, err
@@ -110,152 +190,259 @@ func atomicOp(text []byte, i int) (int, AST, error) {
 	return i, NewApplyOp(O, A), err
 }
 
-func op(text []byte, i int) (int, AST, error) {
-	i, err := match(text, i, '+')
+func (p *parser) op(i int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter op %v '%v'", i, string(p.text[i:]))
+	}
+	i, err := p.match(i, '+')
 	if err == nil {
 		return i, NewOp("+"), nil
 	}
-	i, err = match(text, i, '*')
+	i, err = p.match(i, '*')
 	if err == nil {
 		return i, NewOp("*"), nil
 	}
-	i, err = match(text, i, '?')
+	i, err = p.match(i, '?')
 	if err == nil {
 		return i, NewOp("?"), nil
 	}
-	return i, nil, ErrorNoOp
+	return i, nil, Errorf(p.text, i, "No Operator")
 }
 
-func atomic(text []byte, i int) (int, AST, error) {
-	i, ast, err := char(text, i)
-	if err == nil {
+func (p *parser) atomic(i int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter atomic %v '%v'", i, string(p.text[i:]))
+	}
+	i, ast, errChar := p.char(i)
+	if errChar == nil {
 		return i, ast, nil
 	}
-	i, ast, err = group(text, i)
-	if err == nil {
+	if DEBUG {
+		log.Printf("char %v", errChar)
+	}
+	i, ast, errGroup := p.group(i)
+	if errGroup == nil {
 		return i, ast, nil
 	}
-	return i, nil, fmt.Errorf("Expected group or concat at %d", i)
+	if DEBUG {
+		log.Printf("group %v", errGroup)
+	}
+	return i, nil, Errorf(p.text, i, "Expected group or char").Chain(errChar).Chain(errGroup)
 }
 
-func group(text []byte, i int) (int, AST, error) {
-	i, err := match(text, i, '(')
+func (p *parser) group(j int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter group %v '%v'", j, string(p.text[j:]))
+	}
+	i, err := p.match(j, '(')
 	if err != nil {
 		return i, nil, err
 	}
-	i, A, err := alternation(text, i)
+	i, A, err := p.alternation(i)
 	if err != nil {
-		return i, nil, err
+		return j, nil, err
 	}
-	i, err = match(text, i, ')')
+	i, err = p.match(i, ')')
 	if err != nil {
-		return i, nil, err
+		return j, nil, err
 	}
 	return i, A, nil
 }
 
-func concat(text []byte, i int) (int, AST, error) {
-	return _concat(text, i)
-}
-
-func _concat(text []byte, i int) (int, AST, error) {
-	i, Ch, err := char(text, i)
-	if err != nil {
-		return i, nil, err
+func (p *parser) concat(i int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter concat %v '%v'", i, string(p.text[i:]))
 	}
-	i, Co, err := concat_(text, i)
+	if i >= len(p.text) {
+		return i, nil, nil
+	}
+	i, Ch, err := p.char(i)
 	if err != nil {
-		return i, nil, err
+		return i, nil, nil
+	}
+	i, Co, err := p.concat(i)
+	if err != nil {
+		return i, Ch, nil
 	}
 	return i, NewConcat(Ch, Co), nil
 }
 
-func concat_(text []byte, i int) (int, AST, error) {
-	if i >= len(text) {
-		return i, nil, nil
+func (p *parser) char(i int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter char %v '%v'", i, string(p.text[i:]))
 	}
-	i, C, _ := _concat(text, i)
-	return i, C, nil
-}
-
-func char(text []byte, i int) (int, AST, error) {
-	i, C, err := CHAR(text, i)
-	if err == nil {
+	i, C, errCHAR := p.CHAR(i)
+	if errCHAR == nil {
 		return i, C, nil
 	}
-	i, R, err := charRange(text, i)
-	if err == nil {
+	i, R, errRange := p.charRange(i)
+	if errRange == nil {
 		return i, R, nil
 	}
-	return i, nil, fmt.Errorf(
-		"Expected a CHAR or charRange at %d", i)
+	return i, nil, Errorf(p.text, i,
+		"Expected a CHAR or charRange at %d, %v", i, string(p.text)).Chain(errCHAR).Chain(errRange)
 }
 
-func CHAR(text []byte, i int) (int, AST, error) {
-	i, err := match(text, i, '\\')
-	if err == nil {
-		if i < len(text) && text[i] == 'n' {
-			return i+1, NewCharacter('\n'), nil
+func (p *parser) CHAR(i int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter CHAR %v '%v'", i, string(p.text[i:]))
+	}
+	if i >= len(p.text) {
+		return i, nil, Errorf(p.text, i, "out of input %v, %v", i, string(p.text))
+	}
+	if p.text[i] == '\\' {
+		i, b, err := p.getByte(i)
+		if err != nil {
+			return i, nil, err
 		}
-		return match_any(text, i)
+		return i + 1, NewCharacter(b), nil
 	}
-	if i >= len(text) {
-		return i, nil, fmt.Errorf(
-			"ran out of text in CHAR, %d", i)
-	}
-	switch text[i] {
-	case '|','+','*','?','(',')','[',']', '^':
-		return i, nil, fmt.Errorf(
-			"unexpected operator, %s", string([]byte{text[i]}))
+	switch p.text[i] {
+	case '|', '+', '*', '?', '(', ')', '[', ']', '^':
+		return i, nil, Errorf(p.text, i,
+			"unexpected operator, %s", string([]byte{p.text[i]}))
 	case '.':
-		return i+1, NewAny(), nil
+		return i + 1, NewAny(), nil
 	default:
-		return match_any(text, i)
+		return i + 1, NewCharacter(p.text[i]), nil
 	}
 }
 
-func charRange(text []byte, i int) (int, AST, error) {
-	i, err := match(text, i, '[')
-	if err != nil {
-		return i, nil, err
-	}
-	i, err = match(text, i, '^')
+func (p *parser) getByte(i int) (int, byte, *ParseError) {
+	i, err := p.match(i, '\\')
 	if err == nil {
-		return charNotRange(text, i)
+		if i < len(p.text) && p.text[i] == 'n' {
+			return i, '\n', nil
+		} else if i < len(p.text) && p.text[i] == 'r' {
+			return i, '\r', nil
+		} else if i < len(p.text) && p.text[i] == 't' {
+			return i, '\t', nil
+		}
+		return i, p.text[i], nil
 	}
-	i, S, err := match_any(text, i)
+	if i >= len(p.text) {
+		return i, 0, Errorf(p.text, i, "ran out of p.text at %d", i)
+	}
+	return i, p.text[i], nil
+}
+
+func (p *parser) charRange(i int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter charRange %v '%v'", i, string(p.text[i:]))
+	}
+	i, err := p.match(i, '[')
 	if err != nil {
 		return i, nil, err
 	}
-	i, err = match(text, i, '-')
+	i, err = p.match(i, '^')
+	if err == nil {
+		return p.charNotRange(i)
+	}
+	i, S, err := p.match_any(i)
 	if err != nil {
 		return i, nil, err
 	}
-	i, T, err := match_any(text, i)
+	i, err = p.match(i, '-')
 	if err != nil {
 		return i, nil, err
 	}
-	i, err = match(text, i, ']')
+	i, T, err := p.match_any(i)
+	if err != nil {
+		return i, nil, err
+	}
+	i, err = p.match(i, ']')
 	if err != nil {
 		return i, nil, err
 	}
 	return i, NewRange(S, T), err
 }
 
-func charNotRange(text []byte, i int) (int, AST, error) {
-	if i >= len(text) {
-		return i, nil, fmt.Errorf("out of text, %d", i)
+func (p *parser) charNotRange(i int) (int, AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter charNotRange %v '%v'", i, string(p.text[i:]))
 	}
-	ch := i
-	i++
-	i, err := match(text, i, ']')
+	if i >= len(p.text) {
+		return i, nil, Errorf(p.text, i, "out of p.text, %d", i)
+	}
+	chs := make([]byte, 0, 10)
+	for ; i < len(p.text) && p.text[i] != ']'; i++ {
+		var b byte
+		var err *ParseError
+		i, b, err = p.getByte(i)
+		if err != nil {
+			return i, nil, err
+		}
+		chs = append(chs, b)
+	}
+	i, err := p.match(i, ']')
 	if err != nil {
 		return i, nil, err
 	}
+	if len(chs) == 0 {
+		return i, nil, Errorf(p.text, i, "empty negated range at %v", i)
+	}
+	sortBytes(chs)
+	ranges := make([]*Range, 0, len(chs)+1)
+	var prev byte = 0
+	for _, ch := range chs {
+		if prev == ch {
+			goto loop_inc
+		}
+		ranges = append(ranges, &Range{From: prev, To: ch - 1})
+	loop_inc:
+		prev = ch + 1
+	}
 	ast := NewAlternation(
-		NewRange(NewCharacter(0), NewCharacter(text[ch]-1)),
-		NewRange(NewCharacter(text[ch]+1), NewCharacter(255)),
+		ranges[len(ranges)-1],
+		&Range{From: prev, To: 255},
 	)
+	for j := len(ranges) - 2; j >= 0; j-- {
+		ast = NewAlternation(
+			ranges[j],
+			ast,
+		)
+	}
 	return i, ast, nil
 }
 
+func (p *parser) match_any(i int) (int, AST, *ParseError) {
+	if i >= len(p.text) {
+		return i, nil, Errorf(p.text, i, "out of p.text, %d", i)
+	}
+	return i + 1, NewCharacter(p.text[i]), nil
+}
+
+func (p *parser) match(i int, c byte) (int, *ParseError) {
+	if i >= len(p.text) {
+		return i, matchErrorf(p.text, i, "out of p.text, %d", i)
+	} else if p.text[i] == c {
+		i++
+		return i, nil
+	}
+	return i,
+		matchErrorf(p.text, i,
+			"expected '%v' at %v got '%v' of '%v'",
+			string([]byte{c}),
+			i,
+			string(p.text[i:i+1]),
+			string(p.text[i:]),
+		)
+}
+
+func sortBytes(bytes sortableBytes) {
+	sort.Sort(bytes)
+}
+
+type sortableBytes []byte
+
+func (s sortableBytes) Len() int {
+	return len(s)
+}
+
+func (s sortableBytes) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s sortableBytes) Less(i, j int) bool {
+	return s[i] < s[j]
+}

@@ -236,6 +236,9 @@ func ToDFA(program InstSlice) InstSlice {
 		if next != nil {
 			dfa_build[s.id] = append(dfa_build[s.id], next)
 		}
+		// TODO: track the NFA state the MATCH jump is coming from. The Lexer
+		// engine needs this to communicate which pattern the MATCH corresponds
+		// to.
 		if s.nfa_states.HasMatch(program) && s.id + 2 != len(dfa_build) {
 			dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uint32(len(dfa_build)-1), 0})
 		}

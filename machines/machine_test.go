@@ -1,9 +1,7 @@
 package machines
 
 import "testing"
-import "strings"
 import "github.com/timtadh/lexmachine/inst"
-
 
 func TestLexerMatch(t *testing.T) {
 	text := []byte("ababcbcbb")
@@ -77,9 +75,13 @@ func TestLexerNoMatch(t *testing.T) {
 	t.Log(string(text))
 	t.Log(program)
 
-	for tc, m, err, scan := LexerEngine(program, text)(0); scan != nil; tc, m, err, scan = scan(tc) {
-		if err == nil || !strings.HasPrefix(err.Error(), "Unconsumed text") {
-			t.Error("no error!", m, err)
+	for tc, _, err, scan := LexerEngine(program, text)(0); scan != nil; tc, _, err, scan = scan(tc) {
+		if err == nil {
+			t.Fatal("no error!", err)
+		}
+		_, unconsumed := err.(*UnconsumedInput)
+		if !unconsumed {
+			t.Fatal("unexpected error type (expected *UnconsumedInput) got %v", err)
 		}
 	}
 }
@@ -187,7 +189,7 @@ func TestLexerRestart(t *testing.T) {
 	check(m, i, err)
 	i -= 2
 
-	tc, m, err, scan = scan(tc-10) // backtrack
+	tc, m, err, scan = scan(tc - 10) // backtrack
 	check(m, i, err)
 	i++
 
@@ -199,7 +201,7 @@ func TestLexerRestart(t *testing.T) {
 	check(m, i, err)
 	i--
 
-	tc, m, err, scan = scan(tc-4)
+	tc, m, err, scan = scan(tc - 4)
 	check(m, i, err)
 	i++
 
@@ -215,5 +217,3 @@ func TestLexerRestart(t *testing.T) {
 		t.Error("unconsumed matches", expected[i-1:])
 	}
 }
-
-

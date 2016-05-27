@@ -1,23 +1,51 @@
 package machines
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 )
+
+import ()
 
 import (
-	"github.com/timtadh/lexmachine/queue"
 	. "github.com/timtadh/lexmachine/inst"
+	"github.com/timtadh/lexmachine/queue"
 )
 
-type Match struct {
-	PC    int
-	TC    int
-	StartLine  int
+type UnconsumedInput struct {
+	StartTC     int
+	FailTC      int
+	StartLine   int
 	StartColumn int
-	EndLine  int
-	EndColumn int
-	Bytes []byte
+	FailLine    int
+	FailColumn  int
+	Text        []byte
+}
+
+func (u *UnconsumedInput) Error() string {
+	min := func(a, b int) int {
+		if a < b {
+			return a
+		}
+		return b
+	}
+	stc := min(u.StartTC, len(u.Text)-1)
+	etc := min(u.FailTC, len(u.Text))
+	return fmt.Sprintf("Lexer error: could not match text starting at %v:%v failing at %v:%v.\n\tunmatched text: '%v'",
+		u.StartLine, u.StartColumn,
+		u.FailLine, u.FailColumn,
+		string(u.Text[stc:etc]),
+	)
+}
+
+type Match struct {
+	PC          int
+	TC          int
+	StartLine   int
+	StartColumn int
+	EndLine     int
+	EndColumn   int
+	Bytes       []byte
 }
 
 func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
@@ -39,7 +67,7 @@ func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
 		}
 		return line, col
 	}
-	for i := prev_tc+1; i <= tc && i < len(text); i++ {
+	for i := prev_tc + 1; i <= tc && i < len(text); i++ {
 		if text[i] == '\n' {
 			col = 0
 			line += 1
@@ -64,19 +92,19 @@ func (self *Match) Equals(other *Match) bool {
 	} else if other == nil {
 		return false
 	}
-	return self.PC == other.PC && 
-			self.StartLine == other.StartLine &&
-			self.StartColumn == other.StartColumn &&
-			self.EndLine == other.EndLine &&
-			self.EndColumn == other.EndColumn &&
-			bytes.Equal(self.Bytes, other.Bytes)
+	return self.PC == other.PC &&
+		self.StartLine == other.StartLine &&
+		self.StartColumn == other.StartColumn &&
+		self.EndLine == other.EndLine &&
+		self.EndColumn == other.EndColumn &&
+		bytes.Equal(self.Bytes, other.Bytes)
 }
 
 func (self Match) String() string {
 	return fmt.Sprintf("<Match %d %d (%d, %d)-(%d, %d) '%v'>", self.PC, self.TC, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn, string(self.Bytes))
 }
 
-type Scanner func(int)(int, *Match, error, Scanner)
+type Scanner func(int) (int, *Match, error, Scanner)
 
 func LexerEngine(program InstSlice, text []byte) Scanner {
 	var cqueue, nqueue *queue.Queue = queue.New(), queue.New()
@@ -98,8 +126,16 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 		if tc < match_tc {
 			// we back-tracked so reset the last match_tc
 			match_tc = -1
+		} else if tc == match_tc {
+			// the caller did not reset the tc, we are where we left
+		} else if match_tc != -1 && tc > match_tc {
+			// we skipped text
+			match_tc = tc
 		}
 		for ; tc <= len(text); tc++ {
+			if cqueue.Empty() && match_pc == -1 {
+				break
+			}
 			for !cqueue.Empty() {
 				pc := cqueue.Pop()
 				inst := program[pc]
@@ -107,7 +143,7 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 				case CHAR:
 					x := byte(inst.X)
 					y := byte(inst.Y)
-					if tc < len(text) && x <= text[tc] && text[tc] <= y  {
+					if tc < len(text) && x <= text[tc] && text[tc] <= y {
 						nqueue.Push(pc + 1)
 					}
 				case MATCH:
@@ -138,13 +174,13 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 				line, col = compute_lc(text, prev_tc, start_tc, line, col)
 				e_line, e_col := compute_lc(text, start_tc, match_tc-1, line, col)
 				match := &Match{
-					PC: match_pc,
-					TC: start_tc,
-					StartLine: line,
+					PC:          match_pc,
+					TC:          start_tc,
+					StartLine:   line,
 					StartColumn: col,
-					EndLine: e_line,
-					EndColumn: e_col,
-					Bytes: text[start_tc:match_tc],
+					EndLine:     e_line,
+					EndColumn:   e_col,
+					Bytes:       text[start_tc:match_tc],
 				}
 				cqueue.Push(0)
 				prev_tc = start_tc
@@ -161,73 +197,21 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 			if match_tc == -1 {
 				match_tc = 0
 			}
-			line, col = compute_lc(text, 0, match_tc, 1, 1)
-			return tc, nil, fmt.Errorf("Unconsumed text, %d (%d, %d), '%s'", match_tc, line, col, text[match_tc:]), scan
+			sline, scol := compute_lc(text, 0, start_tc, 1, 1)
+			fline, fcol := compute_lc(text, 0, tc, 1, 1)
+			err := &UnconsumedInput{
+				StartTC:     start_tc,
+				FailTC:      tc,
+				StartLine:   sline,
+				StartColumn: scol,
+				FailLine:    fline,
+				FailColumn:  fcol,
+				Text:        text,
+			}
+			return tc, nil, err, scan
 		} else {
 			return tc, nil, nil, nil
 		}
 	}
 	return scan
 }
-
-func DFALexerEngine(program InstSlice, text []byte) Scanner {
-	done := false
-	line := 1
-	col := 1
-	prev_tc := 0
-	match_tc := -1
-	var scan Scanner
-	scan = func(tc int) (int, *Match, error, Scanner) {
-		if done || match_tc == len(text) {
-			return tc, nil, nil, nil
-		}
-		start_tc := tc
-		pc := 0
-		loop: for ; tc <= len(text) && int(pc) < len(program); {
-			inst := program[pc]
-			fmt.Println(tc, len(text), inst)
-			switch inst.Op {
-			case CHAR:
-				x := byte(inst.X)
-				y := byte(inst.Y)
-				if tc < len(text) && x <= text[tc] && text[tc] <= y  {
-					pc += 1
-					tc += 1
-				} else {
-					break loop
-				}
-			case MATCH:
-				line, col = compute_lc(text, prev_tc, start_tc, line, col)
-				e_line, e_col := compute_lc(text, start_tc, tc-1, line, col)
-				match := &Match{
-					PC: pc,
-					TC: start_tc,
-					StartLine: line,
-					StartColumn: col,
-					EndLine: e_line,
-					EndColumn: e_col,
-					Bytes: text[start_tc:tc],
-				}
-				match_tc = tc
-				return tc, match, nil, scan
-			case JMP:
-				pc = int(inst.X)
-			case SPLIT:
-				panic(fmt.Errorf("You must supply a DFA you gave an NFA"))
-			case CHJMP:
-				x := byte(inst.X)
-				y := byte(inst.Y)
-				if tc < len(text) && x <= text[tc] && text[tc] <= y  {
-					pc += 1
-					tc += 1
-				} else {
-					pc += 2
-				}
-			}
-		}
-		done = true
-		return tc, nil, fmt.Errorf("Unconsumed text, %d (%d, %d), '%s'", tc, line, col, text[tc:]), scan
-	}
-	return scan
-}
-
