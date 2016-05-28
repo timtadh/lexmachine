@@ -107,8 +107,6 @@ func (self Match) String() string {
 type Scanner func(int) (int, *Match, error, Scanner)
 
 func LexerEngine(program InstSlice, text []byte) Scanner {
-	var cqueue, nqueue *queue.Queue = queue.New(), queue.New()
-	cqueue.Push(0)
 	done := false
 	match_pc := -1
 	match_tc := -1
@@ -119,7 +117,7 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 
 	var scan Scanner
 	scan = func(tc int) (int, *Match, error, Scanner) {
-		if done {
+		if done && tc == len(text) {
 			return tc, nil, nil, nil
 		}
 		start_tc := tc
@@ -132,6 +130,8 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 			// we skipped text
 			match_tc = tc
 		}
+		var cqueue, nqueue *queue.Queue = queue.New(), queue.New()
+		cqueue.Push(0)
 		for ; tc <= len(text); tc++ {
 			if cqueue.Empty() && match_pc == -1 {
 				break
