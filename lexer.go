@@ -119,7 +119,7 @@ func (self *Lexer) Scanner(text []byte) (*Scanner, error) {
 		return nil, err
 	}
 
-	scan := machines.LexerEngine(self.program, text)
+	scan := machines.DFALexerEngine(self.program, text)
 
 	// prevent the user from modifying the text under scan
 	text_copy := make([]byte, len(text))
@@ -164,17 +164,11 @@ func (self *Lexer) Compile() error {
 	if err != nil {
 		return err
 	}
+	fmt.Println(nfa.Serialize())
 
-	// TODO: DFA contruction needs to track NFA MATCH identity before this will
-	// work correctly.
-	//dfa := machines.ToDFA(nfa)
-	//self.program = dfa
-
-	self.program = nfa
 	self.matches = make(map[int]int)
-
 	ast := 0
-	for i, instruction := range self.program {
+	for i, instruction := range nfa {
 		if instruction.Op == inst.MATCH {
 			self.matches[i] = ast
 			ast += 1
@@ -184,6 +178,12 @@ func (self *Lexer) Compile() error {
 	if len(asts) != ast {
 		panic(fmt.Sprintf("len(asts) != ast, %v != %v", len(asts), ast))
 	}
+
+	// TODO: DFA contruction needs to track NFA MATCH identity before this will
+	// work correctly.
+	dfa := machines.ToDFA(nfa)
+	self.program = dfa
+
 
 	return nil
 }

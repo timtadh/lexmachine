@@ -83,6 +83,7 @@ func TestSimple(t *testing.T) {
 	)
 
 	scanner, err := lexer.Scanner([]byte(`
+
 		name = 10
 		print name
 		print fred
@@ -123,8 +124,10 @@ func TestSimple(t *testing.T) {
 			t.Fatal(err)
 		}
 		tok := tk.(*Token)
-		if !tok.Equals(expected[i]) {
-			t.Errorf("got wrong token got %v, expected %v", tok, expected[i])
+		if i >= len(expected) {
+			t.Errorf("got unexpected token %v '%v'", tok, string(tok.Lexeme))
+		} else if !tok.Equals(expected[i]) {
+			t.Errorf("got wrong token got %v '%v', expected %v", tok, string(tok.Lexeme), expected[i])
 		}
 		i += 1
 	}

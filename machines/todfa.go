@@ -43,6 +43,18 @@ func (list pc_list) HasMatch(program InstSlice) bool {
 	return false
 }
 
+func (list pc_list) EarliestMatch(program InstSlice) uint32 {
+	match := uint32(len(program) + 1)
+	for _, pc := range list {
+		if program[pc].Op == MATCH {
+			if pc < match {
+				match = pc
+			}
+		}
+	}
+	return match
+}
+
 func (list pc_list) Equals(o types.Equatable) bool {
 	if l, ok := o.(pc_list); ok {
 		if len(list) != len(l) {
@@ -239,8 +251,9 @@ func ToDFA(program InstSlice) InstSlice {
 		// TODO: track the NFA state the MATCH jump is coming from. The Lexer
 		// engine needs this to communicate which pattern the MATCH corresponds
 		// to.
-		if s.nfa_states.HasMatch(program) && s.id + 2 != len(dfa_build) {
-			dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uint32(len(dfa_build)-1), 0})
+		if s.nfa_states.HasMatch(program) {
+			dfa_build[s.id] = append(dfa_build[s.id], &Inst{MATCH, s.nfa_states.EarliestMatch(program), 0})
+			// dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uint32(len(dfa_build)-1), 0})
 		}
 
 		/*
@@ -249,7 +262,7 @@ func ToDFA(program InstSlice) InstSlice {
 			fmt.Println("    ", inst)
 		} */
 	}
-	dfa_build[len(dfa_build)-1] = append(dfa_build[len(dfa_build)-1], &Inst{MATCH, 0, 0})
+	// dfa_build[len(dfa_build)-1] = append(dfa_build[len(dfa_build)-1], &Inst{MATCH, 0, 0})
 
 	dfa := make(InstSlice, 0, len(program))
 	dfajmp := make([]int, len(dfa_build))

@@ -14,7 +14,7 @@ func DFALexerEngine(program InstSlice, text []byte) Scanner {
 	done := false
 	line := 1
 	col := 1
-	prev_tc := 0
+	//prev_tc := 0
 	match_tc := -1
 	var scan Scanner
 	scan = func(tc int) (int, *Match, error, Scanner) {
@@ -37,10 +37,10 @@ func DFALexerEngine(program InstSlice, text []byte) Scanner {
 					break loop
 				}
 			case MATCH:
-				line, col = compute_lc(text, prev_tc, start_tc, line, col)
-				e_line, e_col := compute_lc(text, start_tc, tc-1, line, col)
+				line, col = compute_lc(text, 0, start_tc, 0, 1)
+				e_line, e_col := compute_lc(text, 0, tc-1, 0, 1)
 				match := &Match{
-					PC: pc,
+					PC: int(inst.X),
 					TC: start_tc,
 					StartLine: line,
 					StartColumn: col,

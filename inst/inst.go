@@ -46,7 +46,7 @@ func (self Inst) String() (s string) {
 	case JMP:
 		s = fmt.Sprintf("JMP    %v", self.X)
 	case MATCH:
-		s = "MATCH"
+		s = fmt.Sprintf("MATCH  %v", self.X)
 	case CHJMP:
 		if self.X == self.Y {
 			s = fmt.Sprintf("CHJMP  %d (%s)", self.X, string([]byte{byte(self.X)}))
@@ -66,7 +66,7 @@ func (self Inst) Serialize() (s string) {
 	case JMP:
 		s = fmt.Sprintf("JMP    %v", self.X)
 	case MATCH:
-		s = "MATCH"
+		s = fmt.Sprintf("MATCH  %v", self.X)
 	case CHJMP:
 		s = fmt.Sprintf("CHJMP  %d, %d", self.X, self.Y)
 	}
