@@ -116,6 +116,7 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 	col := 1
 
 	var scan Scanner
+	var cqueue, nqueue *queue.Queue = queue.New(len(program)), queue.New(len(program))
 	scan = func(tc int) (int, *Match, error, Scanner) {
 		if done && tc == len(text) {
 			return tc, nil, nil, nil
@@ -130,10 +131,11 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 			// we skipped text
 			match_tc = tc
 		}
-		var cqueue, nqueue *queue.Queue = queue.New(), queue.New()
+		cqueue.Clear()
+		nqueue.Clear()
 		cqueue.Push(0)
 		for ; tc <= len(text); tc++ {
-			if cqueue.Empty() && match_pc == -1 {
+			if cqueue.Empty() {
 				break
 			}
 			for !cqueue.Empty() {
@@ -159,6 +161,8 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 				case SPLIT:
 					cqueue.Push(inst.X)
 					cqueue.Push(inst.Y)
+				default:
+					panic(fmt.Errorf("unexpected instruction %v", inst))
 				}
 			}
 			cqueue, nqueue = nqueue, cqueue
@@ -174,7 +178,6 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 					EndColumn:   e_col,
 					Bytes:       text[start_tc:match_tc],
 				}
-				cqueue.Push(0)
 				prev_tc = start_tc
 				match_pc = -1
 				return tc, match, nil, scan
