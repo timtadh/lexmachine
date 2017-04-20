@@ -36,4 +36,3 @@ func (self *Queue) Pop() uint32 {
 	self.list = self.list[:len(self.list)-1]
 	return pc
 }
-

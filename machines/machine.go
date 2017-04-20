@@ -5,8 +5,6 @@ import (
 	"fmt"
 )
 
-import ()
-
 import (
 	. "github.com/timtadh/lexmachine/inst"
 	"github.com/timtadh/lexmachine/queue"
