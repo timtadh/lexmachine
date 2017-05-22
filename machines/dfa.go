@@ -4,8 +4,6 @@ import (
 	"fmt"
 )
 
-import ()
-
 import (
 	. "github.com/timtadh/lexmachine/inst"
 )
@@ -23,30 +21,31 @@ func DFALexerEngine(program InstSlice, text []byte) Scanner {
 		}
 		start_tc := tc
 		pc := 0
-		loop: for ; tc <= len(text) && int(pc) < len(program); {
+	loop:
+		for tc <= len(text) && int(pc) < len(program) {
 			inst := program[pc]
 			fmt.Println(tc, len(text), inst)
 			switch inst.Op {
 			case CHAR:
 				x := byte(inst.X)
 				y := byte(inst.Y)
-				if tc < len(text) && x <= text[tc] && text[tc] <= y  {
+				if tc < len(text) && x <= text[tc] && text[tc] <= y {
 					pc += 1
 					tc += 1
 				} else {
 					break loop
 				}
 			case MATCH:
-				line, col = compute_lc(text, 0, start_tc, 0, 1)
-				e_line, e_col := compute_lc(text, 0, tc-1, 0, 1)
+				line, col = compute_lc(text, 0, start_tc, line, col)
+				e_line, e_col := compute_lc(text, 0, tc-1, line, col)
 				match := &Match{
-					PC: int(inst.X),
-					TC: start_tc,
-					StartLine: line,
+					PC:          int(inst.X),
+					TC:          start_tc,
+					StartLine:   line,
 					StartColumn: col,
-					EndLine: e_line,
-					EndColumn: e_col,
-					Bytes: text[start_tc:tc],
+					EndLine:     e_line,
+					EndColumn:   e_col,
+					Bytes:       text[start_tc:tc],
 				}
 				match_tc = tc
 				return tc, match, nil, scan
@@ -57,7 +56,7 @@ func DFALexerEngine(program InstSlice, text []byte) Scanner {
 			case CHJMP:
 				x := byte(inst.X)
 				y := byte(inst.Y)
-				if tc < len(text) && x <= text[tc] && text[tc] <= y  {
+				if tc < len(text) && x <= text[tc] && text[tc] <= y {
 					pc += 1
 					tc += 1
 				} else {
@@ -70,4 +69,3 @@ func DFALexerEngine(program InstSlice, text []byte) Scanner {
 	}
 	return scan
 }
-
