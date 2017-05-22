@@ -69,30 +69,30 @@ type Scanner struct {
 }
 
 func (self *Scanner) Next() (tok interface{}, err error, eof bool) {
-	tc, match, err, scan := self.scan(self.TC)
-	if scan == nil {
-		return nil, nil, true
-	} else if err != nil {
-		return nil, err, false
-	} else if match == nil {
-		return nil, fmt.Errorf("No match but no error"), false
-	}
-	self.scan = scan
-	self.pTC = self.TC
-	self.TC = tc
-	self.s_line = match.StartLine
-	self.s_column = match.StartColumn
-	self.e_line = match.EndLine
-	self.e_column = match.EndColumn
+	var token interface{} = nil
+	for token == nil {
+		tc, match, err, scan := self.scan(self.TC)
+		if scan == nil {
+			return nil, nil, true
+		} else if err != nil {
+			return nil, err, false
+		} else if match == nil {
+			return nil, fmt.Errorf("No match but no error"), false
+		}
+		self.scan = scan
+		self.pTC = self.TC
+		self.TC = tc
+		self.s_line = match.StartLine
+		self.s_column = match.StartColumn
+		self.e_line = match.EndLine
+		self.e_column = match.EndColumn
 
-	pattern := self.lexer.patterns[self.lexer.matches[match.PC]]
-	token, err := pattern.action(self, match)
-	if err != nil {
-		return nil, err, false
-	} else if token == nil {
-		return self.Next()
+		pattern := self.lexer.patterns[self.lexer.matches[match.PC]]
+		token, err = pattern.action(self, match)
+		if err != nil {
+			return nil, err, false
+		}
 	}
-
 	return token, nil, false
 }
 

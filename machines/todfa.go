@@ -5,18 +5,17 @@ import (
 )
 
 import (
-	"github.com/timtadh/data-structures/types"
 	"github.com/timtadh/data-structures/hashtable"
+	"github.com/timtadh/data-structures/types"
 )
 
 import (
-	"github.com/timtadh/lexmachine/queue"
 	. "github.com/timtadh/lexmachine/inst"
+	"github.com/timtadh/lexmachine/queue"
 )
 
-
 type dfa_state struct {
-	id int
+	id         int
 	nfa_states pc_list
 	moves
 }
@@ -90,7 +89,7 @@ func (list pc_list) Less(o types.Sortable) bool {
 func (list pc_list) Hash() int {
 	hash := 0
 	for i, pc := range list {
-		hash += (i+1)*(int(pc)+1)
+		hash += (i + 1) * (int(pc) + 1)
 	}
 	return hash
 }
@@ -137,7 +136,7 @@ func closure_one(program InstSlice, pc uint32) pc_list {
 
 func closure(program InstSlice, set pc_list) pc_list {
 	list := make(pc_list, 0, 10)
-	q := queue.New()
+	q := queue.New(len(program))
 	for _, pc := range set {
 		q.Push(pc)
 	}
@@ -146,7 +145,7 @@ func closure(program InstSlice, set pc_list) pc_list {
 		list = list.insert(pc)
 		inst := program[pc]
 		switch inst.Op {
-		case CHAR:  // no actions are further reachable
+		case CHAR: // no actions are further reachable
 		case MATCH: // no actions are fruther reachable
 		case SPLIT:
 			if !list.has(inst.Y) {
@@ -164,7 +163,7 @@ func closure(program InstSlice, set pc_list) pc_list {
 
 type movement struct {
 	a, b byte
-	U pc_list
+	U    pc_list
 }
 
 func (m *movement) String() string {
@@ -194,7 +193,7 @@ func ToDFA(program InstSlice) InstSlice {
 	stack := make(dfa_stack, 0, 10)
 
 	next_id := 0
-	s0 := &dfa_state{id:next_id, nfa_states:closure_one(program, 0)}
+	s0 := &dfa_state{id: next_id, nfa_states: closure_one(program, 0)}
 	stack = stack.push(s0)
 	if err := dfa_states.Put(s0.nfa_states, s0); err != nil {
 		panic(err)
@@ -207,7 +206,7 @@ func ToDFA(program InstSlice) InstSlice {
 		S.moves = move(program, S.nfa_states)
 		for _, M := range S.moves {
 			if !dfa_states.Has(M.U) {
-				s := &dfa_state{id:next_id, nfa_states:M.U}
+				s := &dfa_state{id: next_id, nfa_states: M.U}
 				next_id++
 				if err := dfa_states.Put(M.U, s); err != nil {
 					panic(err)
@@ -231,9 +230,9 @@ func ToDFA(program InstSlice) InstSlice {
 				dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHJMP, uint32(move.a), uint32(move.b)})
 				dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
 			} else if next == nil {
-				if uint32(s.id + 1) == uid {
+				if uint32(s.id+1) == uid {
 					next = &Inst{CHAR, uint32(move.a), uint32(move.b)}
-				} else if i + 1 == len(s.moves) {
+				} else if i+1 == len(s.moves) {
 					dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHAR, uint32(move.a), uint32(move.b)})
 					dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
 				} else {
@@ -257,10 +256,10 @@ func ToDFA(program InstSlice) InstSlice {
 		}
 
 		/*
-		fmt.Println(k, s.id)
-		for _, inst := range dfa_build[s.id] {
-			fmt.Println("    ", inst)
-		} */
+			fmt.Println(k, s.id)
+			for _, inst := range dfa_build[s.id] {
+				fmt.Println("    ", inst)
+			} */
 	}
 	// dfa_build[len(dfa_build)-1] = append(dfa_build[len(dfa_build)-1], &Inst{MATCH, 0, 0})
 
@@ -281,5 +280,3 @@ func ToDFA(program InstSlice) InstSlice {
 
 	return dfa
 }
-
-

@@ -5,8 +5,6 @@ import (
 	"fmt"
 )
 
-import ()
-
 import (
 	. "github.com/timtadh/lexmachine/inst"
 	"github.com/timtadh/lexmachine/queue"
@@ -107,8 +105,6 @@ func (self Match) String() string {
 type Scanner func(int) (int, *Match, error, Scanner)
 
 func LexerEngine(program InstSlice, text []byte) Scanner {
-	var cqueue, nqueue *queue.Queue = queue.New(), queue.New()
-	cqueue.Push(0)
 	done := false
 	match_pc := -1
 	match_tc := -1
@@ -118,8 +114,9 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 	col := 1
 
 	var scan Scanner
+	var cqueue, nqueue *queue.Queue = queue.New(len(program)), queue.New(len(program))
 	scan = func(tc int) (int, *Match, error, Scanner) {
-		if done {
+		if done && tc == len(text) {
 			return tc, nil, nil, nil
 		}
 		start_tc := tc
@@ -132,8 +129,11 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 			// we skipped text
 			match_tc = tc
 		}
+		cqueue.Clear()
+		nqueue.Clear()
+		cqueue.Push(0)
 		for ; tc <= len(text); tc++ {
-			if cqueue.Empty() && match_pc == -1 {
+			if cqueue.Empty() {
 				break
 			}
 			for !cqueue.Empty() {
@@ -162,11 +162,13 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 				case CHJMP:
 					x := byte(inst.X)
 					y := byte(inst.Y)
-					if tc < len(text) && x <= text[tc] && text[tc] <= y  {
+					if tc < len(text) && x <= text[tc] && text[tc] <= y {
 						nqueue.Push(pc + 1)
 					} else {
 						cqueue.Push(pc + 2)
 					}
+				default:
+					panic(fmt.Errorf("unexpected instruction %v", inst))
 				}
 			}
 			cqueue, nqueue = nqueue, cqueue
@@ -182,7 +184,6 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 					EndColumn:   e_col,
 					Bytes:       text[start_tc:match_tc],
 				}
-				cqueue.Push(0)
 				prev_tc = start_tc
 				match_pc = -1
 				return tc, match, nil, scan
