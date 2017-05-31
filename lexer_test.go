@@ -11,9 +11,63 @@ import (
 	"github.com/timtadh/lexmachine/machines"
 )
 
+func TestKeyword(t *testing.T) {
+	const (
+		NAME = iota + 1
+		EQUALS
+		NUMBER
+		PRINT
+	)
+	lexer := NewLexer()
+
+	lexer.Add(
+		[]byte("print"),
+		func(scan *Scanner, match *machines.Match) (interface{}, error) {
+			return scan.Token(PRINT, nil, match), nil
+		},
+	)
+	lexer.Add(
+		[]byte("[a-z]+"),
+		func(scan *Scanner, match *machines.Match) (interface{}, error) {
+			return scan.Token(NAME, string(match.Bytes), match), nil
+		},
+	)
+	lexer.Add(
+		[]byte(" "),
+		func(scan *Scanner, match *machines.Match) (interface{}, error) {
+			// skip white space
+			return nil, nil
+		},
+	)
+	scanner, err := lexer.Scanner([]byte(`print name`))
+	if err != nil {
+		t.Error(err)
+	}
+
+	expected := []*Token{
+		&Token{PRINT, nil, []byte("print"), 3, 2, 6, 2, 13},
+		&Token{NAME, "name", []byte("name"), 9, 3, 9, 3, 12},
+	}
+
+	t.Log(lexer.program.Serialize())
+
+	i := 0
+	for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
+		if err != nil {
+			t.Fatal(err)
+		}
+		tok := tk.(*Token)
+		if i >= len(expected) {
+			t.Errorf("got unexpected token %v", tok)
+		} else if !tok.Equals(expected[i]) {
+			t.Errorf("got wrong token got %v, expected %v", tok, expected[i])
+		}
+		i += 1
+	}
+}
 func TestSimple(t *testing.T) {
 	const (
-		NAME = iota
+		NAME = iota + 1
 		EQUALS
 		NUMBER
 		PRINT
@@ -83,7 +137,6 @@ func TestSimple(t *testing.T) {
 	)
 
 	scanner, err := lexer.Scanner([]byte(`
-
 		name = 10
 		print name
 		print fred
@@ -125,9 +178,9 @@ func TestSimple(t *testing.T) {
 		}
 		tok := tk.(*Token)
 		if i >= len(expected) {
-			t.Errorf("got unexpected token %v '%v'", tok, string(tok.Lexeme))
+			t.Errorf("got unexpected token %v", tok)
 		} else if !tok.Equals(expected[i]) {
-			t.Errorf("got wrong token got %v '%v', expected %v", tok, string(tok.Lexeme), expected[i])
+			t.Errorf("got wrong token got %v, expected %v", tok, expected[i])
 		}
 		i += 1
 	}

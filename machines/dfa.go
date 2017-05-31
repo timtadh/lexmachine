@@ -14,6 +14,7 @@ func DFALexerEngine(program InstSlice, text []byte) Scanner {
 	col := 1
 	//prev_tc := 0
 	match_tc := -1
+	fmt.Println(program)
 	var scan Scanner
 	scan = func(tc int) (int, *Match, error, Scanner) {
 		if done || match_tc == len(text) {
@@ -24,7 +25,7 @@ func DFALexerEngine(program InstSlice, text []byte) Scanner {
 	loop:
 		for tc <= len(text) && int(pc) < len(program) {
 			inst := program[pc]
-			fmt.Println(tc, len(text), inst)
+			fmt.Println(pc, tc, len(text), inst)
 			switch inst.Op {
 			case CHAR:
 				x := byte(inst.X)

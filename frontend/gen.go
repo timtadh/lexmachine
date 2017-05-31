@@ -20,6 +20,11 @@ func Generate(ast AST) (inst.InstSlice, error) {
 	if len(fill) != 0 {
 		return nil, fmt.Errorf("unconnected instructions")
 	}
+	for i := range g.program {
+		if g.program[i].Op == inst.MATCH {
+			g.program[i].X = uint32(i)
+		}
+	}
 	return g.program, nil
 }
 

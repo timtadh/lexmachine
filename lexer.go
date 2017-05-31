@@ -3,9 +3,8 @@ package lexmachine
 import (
 	"bytes"
 	"fmt"
-)
+	"strconv"
 
-import (
 	"github.com/timtadh/lexmachine/frontend"
 	"github.com/timtadh/lexmachine/inst"
 	"github.com/timtadh/lexmachine/machines"
@@ -40,7 +39,7 @@ func (self *Token) Equals(other *Token) bool {
 }
 
 func (self *Token) String() string {
-	return fmt.Sprintf("%d %v %d (%d, %d)-(%d, %d)", self.Type, self.Value, self.TC, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn)
+	return fmt.Sprintf("%d %v %d (%d, %d)-(%d, %d)", self.Type, strconv.Quote(string(self.Lexeme)), self.TC, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn)
 }
 
 type Action func(scan *Scanner, match *machines.Match) (interface{}, error)
@@ -183,7 +182,6 @@ func (self *Lexer) Compile() error {
 	// work correctly.
 	dfa := machines.ToDFA(nfa)
 	self.program = dfa
-
 
 	return nil
 }

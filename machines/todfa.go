@@ -2,14 +2,11 @@ package machines
 
 import (
 	"fmt"
-)
+	"sort"
 
-import (
 	"github.com/timtadh/data-structures/hashtable"
 	"github.com/timtadh/data-structures/types"
-)
 
-import (
 	. "github.com/timtadh/lexmachine/inst"
 	"github.com/timtadh/lexmachine/queue"
 )
@@ -115,7 +112,7 @@ func (list pc_list) insert(pc uint32) pc_list {
 	for i := 0; i < len(list); i += 1 {
 		if list[i] == pc {
 			return list
-		} else if list[i] < pc {
+		} else if pc < list[i] {
 			return list.insert_at(i, pc)
 		}
 	}
@@ -146,7 +143,7 @@ func closure(program InstSlice, set pc_list) pc_list {
 		inst := program[pc]
 		switch inst.Op {
 		case CHAR: // no actions are further reachable
-		case MATCH: // no actions are fruther reachable
+		case MATCH: // no actions are further reachable
 		case SPLIT:
 			if !list.has(inst.Y) {
 				q.Push(inst.Y)
@@ -185,6 +182,11 @@ func move(program InstSlice, T pc_list) (m moves) {
 			// no other operation has movements!
 		}
 	}
+	sort.Slice(m, func(i, j int) bool {
+		min_i := m[i].U[0]
+		min_j := m[j].U[0]
+		return min_i < min_j
+	})
 	return m
 }
 
@@ -216,36 +218,32 @@ func ToDFA(program InstSlice) InstSlice {
 		}
 	}
 
+	dfa_keys := make([]pc_list, 0, 10)
+	for k, next := dfa_states.Keys()(); next != nil; k, next = next() {
+		dfa_keys = append(dfa_keys, k.(pc_list))
+	}
+	sort.Slice(dfa_keys, func(i, j int) bool {
+		min_i := dfa_keys[i][0]
+		min_j := dfa_keys[j][0]
+		return min_i < min_j
+	})
+	fmt.Println(dfa_keys)
+
 	dfa_build := make([]InstSlice, dfa_states.Size()+1)
-	for _, v, next := dfa_states.Iterate()(); next != nil; _, v, next = next() {
+	for _, k := range dfa_keys {
+		v, _ := dfa_states.Get(k)
 		s := v.(*dfa_state)
-		var next *Inst = nil
-		for i, move := range s.moves {
+		fmt.Println("-", s.moves)
+		for _, move := range s.moves {
+			fmt.Println("move", move)
 			u, err := dfa_states.Get(move.U)
 			if err != nil {
 				panic(err)
 			}
 			uid := uint32(u.(*dfa_state).id)
-			if s.nfa_states.HasMatch(program) {
-				dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHJMP, uint32(move.a), uint32(move.b)})
-				dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
-			} else if next == nil {
-				if uint32(s.id+1) == uid {
-					next = &Inst{CHAR, uint32(move.a), uint32(move.b)}
-				} else if i+1 == len(s.moves) {
-					dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHAR, uint32(move.a), uint32(move.b)})
-					dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
-				} else {
-					dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHJMP, uint32(move.a), uint32(move.b)})
-					dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
-				}
-			} else {
-				dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHJMP, uint32(move.a), uint32(move.b)})
-				dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
-			}
-		}
-		if next != nil {
-			dfa_build[s.id] = append(dfa_build[s.id], next)
+			fmt.Println("dfa state", uid)
+			dfa_build[s.id] = append(dfa_build[s.id], &Inst{CHJMP, uint32(move.a), uint32(move.b)})
+			dfa_build[s.id] = append(dfa_build[s.id], &Inst{JMP, uid, 0})
 		}
 		// TODO: track the NFA state the MATCH jump is coming from. The Lexer
 		// engine needs this to communicate which pattern the MATCH corresponds
@@ -277,6 +275,44 @@ func ToDFA(program InstSlice) InstSlice {
 			inst.X = uint32(dfajmp[inst.X])
 		}
 	}
-
 	return dfa
+}
+
+func remove_unneeded_chjmp(dfa InstSlice) InstSlice {
+	count := func(i uint32, removed []uint32) uint32 {
+		count := uint32(0)
+		for _, x := range removed {
+			if x < i {
+				count++
+			}
+		}
+		return count
+	}
+	fmt.Println(dfa)
+	optimized := make(InstSlice, 0, len(dfa))
+	removed := make([]uint32, 0, 10)
+	for i := 0; i < len(dfa); i++ {
+		if dfa[i].Op == CHJMP && i+2 < len(dfa) {
+			if dfa[i+1].Op == JMP && dfa[i+1].X == uint32(i+2) {
+				char := &Inst{CHAR, dfa[i].X, dfa[i].Y}
+				optimized = append(optimized, char)
+				fmt.Println("Useless Jump", i, dfa[i], char)
+				i++
+				removed = append(removed, uint32(i+1))
+				continue
+			}
+		}
+		optimized = append(optimized, dfa[i])
+	}
+	for _, i := range optimized {
+		switch i.Op {
+		case SPLIT:
+			i.Y = i.Y - count(i.Y, removed)
+			fallthrough
+		case JMP:
+			i.X = i.X - count(i.X, removed)
+		}
+	}
+	fmt.Println("removed", removed)
+	return optimized
 }
