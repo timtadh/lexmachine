@@ -475,21 +475,3 @@ func (p *parser) match(i int, c byte) (int, *ParseError) {
 		string(p.text[i:]),
 	)
 }
-
-func sortBytes(bytes sortableBytes) {
-	sort.Sort(bytes)
-}
-
-type sortableBytes []byte
-
-func (s sortableBytes) Len() int {
-	return len(s)
-}
-
-func (s sortableBytes) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s sortableBytes) Less(i, j int) bool {
-	return s[i] < s[j]
-}
