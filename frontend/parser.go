@@ -346,7 +346,6 @@ func (p *parser) charClass(i int) (int, AST, *ParseError) {
 		if err != nil {
 			return i, nil, err
 		}
-		fmt.Println(i, r, string([]byte{p.text[i]}))
 		ranges = append(ranges, r)
 		if i < len(p.text) && p.text[i] == ']' {
 			break
@@ -358,14 +357,11 @@ func (p *parser) charClass(i int) (int, AST, *ParseError) {
 	if err != nil {
 		return i, nil, err
 	}
-	fmt.Println(ranges)
 	ranges = p.combineOverlaps(ranges)
 	if exclude {
 		ranges = p.invertRanges(ranges)
 	}
-	fmt.Println(ranges)
 	ast := p.rangesToAST(ranges)
-	fmt.Println(ast)
 	return i, ast, err
 }
 

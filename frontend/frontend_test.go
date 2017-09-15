@@ -213,6 +213,27 @@ func TestMultiRangeClasses(x *testing.T) {
 	t_match(program, "AAACC", t)
 }
 
+func TestMultiRangeClasses2(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("([\\._/:a-zA-Z]+):\"(.+)\""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (Concat (+ (Alternation (Range 46 47), (Alternation (Range 58 58), (Alternation (Range 65 90), (Alternation (Range 95 95), (Range 97 122)))))), (Character :), (Character \"), (+ (Range 0 255)), (Character \")))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, ".X:\"a\"", t)
+	t_nomatch(program, ".X:a\"", t)
+}
+
 func TestInvertRangeClasses1(x *testing.T) {
 	t := (*test.T)(x)
 	ast, err := Parse([]byte("[^abcd]+"))
