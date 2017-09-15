@@ -157,14 +157,18 @@ func NewConcat(char, concat AST) AST {
 	return &Concat{[]AST{char, concat}}
 }
 
-func NewCharacter(b byte) AST {
+func NewCharacter(b byte) *Character {
 	return &Character{b}
 }
 
-func NewAny() AST {
-	return &Range{0, 255}
+func NewAny() *Range {
+	return &Range{From: 0, To: 255}
 }
 
-func NewRange(from, to AST) AST {
-	return &Range{from.(*Character).Char, to.(*Character).Char}
+func NewRange(from, to byte) *Range {
+	if from <= to {
+		return &Range{From: from, To: to}
+	} else {
+		return &Range{From: to, To: from}
+	}
 }

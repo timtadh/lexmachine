@@ -275,7 +275,7 @@ func (p *parser) char(i int) (int, AST, *ParseError) {
 	if errCHAR == nil {
 		return i, C, nil
 	}
-	i, R, errRange := p.charRange(i)
+	i, R, errRange := p.charClass(i)
 	if errRange == nil {
 		return i, R, nil
 	}
@@ -323,89 +323,141 @@ func (p *parser) getByte(i int) (int, byte, *ParseError) {
 	if i >= len(p.text) {
 		return i, 0, Errorf(p.text, i, "ran out of p.text at %d", i)
 	}
-	return i, p.text[i], nil
+	return i + 1, p.text[i], nil
 }
 
-func (p *parser) charRange(i int) (int, AST, *ParseError) {
+func (p *parser) charClass(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter charRange %v '%v'", i, string(p.text[i:]))
 	}
+	exclude := false
 	i, err := p.match(i, '[')
 	if err != nil {
 		return i, nil, err
 	}
 	i, err = p.match(i, '^')
 	if err == nil {
-		return p.charNotRange(i)
+		exclude = true
 	}
-	i, S, err := p.match_any(i)
-	if err != nil {
-		return i, nil, err
-	}
-	i, err = p.match(i, '-')
-	if err != nil {
-		return i, nil, err
-	}
-	i, T, err := p.match_any(i)
-	if err != nil {
-		return i, nil, err
+	ranges := make([]*Range, 0, 10)
+	for {
+		var r *Range
+		i, r, err = p.charClassItem(i)
+		if err != nil {
+			return i, nil, err
+		}
+		fmt.Println(i, r, string([]byte{p.text[i]}))
+		ranges = append(ranges, r)
+		if i < len(p.text) && p.text[i] == ']' {
+			break
+		} else if i >= len(p.text) {
+			break
+		}
 	}
 	i, err = p.match(i, ']')
 	if err != nil {
 		return i, nil, err
 	}
-	return i, NewRange(S, T), err
+	fmt.Println(ranges)
+	ranges = p.combineOverlaps(ranges)
+	if exclude {
+		ranges = p.invertRanges(ranges)
+	}
+	fmt.Println(ranges)
+	ast := p.rangesToAST(ranges)
+	fmt.Println(ast)
+	return i, ast, err
 }
 
-func (p *parser) charNotRange(i int) (int, AST, *ParseError) {
-	if DEBUG {
-		log.Printf("enter charNotRange %v '%v'", i, string(p.text[i:]))
-	}
-	if i >= len(p.text) {
-		return i, nil, Errorf(p.text, i, "out of p.text, %d", i)
-	}
-	chs := make([]byte, 0, 10)
-	for ; i < len(p.text) && p.text[i] != ']'; i++ {
-		var b byte
-		var err *ParseError
-		i, b, err = p.getByte(i)
-		if err != nil {
-			return i, nil, err
-		}
-		chs = append(chs, b)
-	}
-	i, err := p.match(i, ']')
+func (p *parser) charClassItem(i int) (int, *Range, *ParseError) {
+	i, S, err := p.getByte(i)
 	if err != nil {
 		return i, nil, err
 	}
-	if len(chs) == 0 {
-		return i, nil, Errorf(p.text, i, "empty negated range at %v", i)
+	i, err = p.match(i, '-')
+	if err != nil {
+		return i, NewRange(S, S), nil
 	}
-	sortBytes(chs)
-	ranges := make([]*Range, 0, len(chs)+1)
-	var prev byte = 0
-	for _, ch := range chs {
-		if prev == ch {
-			goto loop_inc
+	i, T, err := p.getByte(i)
+	if err != nil {
+		return i, nil, err
+	}
+	return i, NewRange(S, T), nil
+}
+
+func (p *parser) combineOverlaps(from []*Range) []*Range {
+	sort.SliceStable(from, func(i, j int) bool {
+		return from[i].From < from[j].From || (from[i].From == from[j].From && from[i].To < from[j].To)
+	})
+	to := make([]*Range, 0, len(from))
+	var prev *Range
+	for _, r := range from {
+		if prev != nil {
+			if prev.To+1 >= r.From {
+				if prev.From >= r.From {
+					// no change drop r it is a subset or prev
+				} else {
+					// extend prev to the end of r
+					prev.To = r.To
+				}
+			} else {
+				// r start after prev ends add a new range
+				to = append(to, r)
+				prev = r
+			}
+		} else {
+			to = append(to, r)
+			prev = r
 		}
-		ranges = append(ranges, &Range{From: prev, To: ch - 1})
-	loop_inc:
-		prev = ch + 1
+	}
+	return to
+}
+
+// Expects p.combineOverlaps() to have been run on orig s.t. there are no
+// overlapping ranges, the ranges are sorted, and all ranges are separated by at
+// least one character.
+func (p *parser) invertRanges(orig []*Range) []*Range {
+	if len(orig) <= 0 {
+		return []*Range{NewAny()}
+	}
+	invrt := make([]*Range, 0, len(orig)+1)
+	if orig[0].From > 0 {
+		invrt = append(invrt, NewRange(0, orig[0].From-1))
+	}
+	for i := 0; i+1 < len(orig); i++ {
+		if orig[i].To < 255 {
+			invrt = append(invrt, NewRange(orig[i].To+1, orig[i+1].From-1))
+		}
+	}
+	if orig[len(orig)-1].To < 255 {
+		invrt = append(invrt, NewRange(orig[len(orig)-1].To+1, 255))
+	}
+	return invrt
+}
+
+// Expects p.combineOverlaps() to have been run on orig s.t. there are no
+// overlapping ranges, the ranges are sorted, and all ranges are separated by at
+// least one character.
+func (p *parser) rangesToAST(ranges []*Range) AST {
+	if len(ranges) == 0 {
+		panic("no ranges")
+	} else if len(ranges) == 1 {
+		return ranges[0]
 	}
 	ast := NewAlternation(
+		ranges[len(ranges)-2],
 		ranges[len(ranges)-1],
-		&Range{From: prev, To: 255},
 	)
-	for j := len(ranges) - 2; j >= 0; j-- {
+	for j := len(ranges) - 3; j >= 0; j-- {
 		ast = NewAlternation(
 			ranges[j],
 			ast,
 		)
 	}
-	return i, ast, nil
+	return ast
 }
 
-func (p *parser) match_any(i int) (int, AST, *ParseError) {
+func (p *parser) match_any(i int) (int, *Character, *ParseError) {
 	if i >= len(p.text) {
 		return i, nil, Errorf(p.text, i, "out of p.text, %d", i)
 	}
@@ -419,14 +471,13 @@ func (p *parser) match(i int, c byte) (int, *ParseError) {
 		i++
 		return i, nil
 	}
-	return i,
-		matchErrorf(p.text, i,
-			"expected '%v' at %v got '%v' of '%v'",
-			string([]byte{c}),
-			i,
-			string(p.text[i:i+1]),
-			string(p.text[i:]),
-		)
+	return i, matchErrorf(p.text, i,
+		"expected '%v' at %v got '%v' of '%v'",
+		string([]byte{c}),
+		i,
+		string(p.text[i:i+1]),
+		string(p.text[i:]),
+	)
 }
 
 func sortBytes(bytes sortableBytes) {
