@@ -291,11 +291,15 @@ func (p *parser) CHAR(i int) (int, AST, *ParseError) {
 		return i, nil, Errorf(p.text, i, "out of input %v, %v", i, string(p.text))
 	}
 	if p.text[i] == '\\' {
+		i, cls, err := p.builtInClass(i)
+		if err == nil {
+			return i, cls, nil
+		}
 		i, b, err := p.getByte(i)
 		if err != nil {
 			return i, nil, err
 		}
-		return i + 1, NewCharacter(b), nil
+		return i, NewCharacter(b), nil
 	}
 	switch p.text[i] {
 	case '|', '+', '*', '?', '(', ')', '[', ']', '^':
@@ -308,17 +312,60 @@ func (p *parser) CHAR(i int) (int, AST, *ParseError) {
 	}
 }
 
+var (
+	range_d = canonizeRanges([]*Range{NewRange(48, 57)})
+	range_D = invertRanges(range_d)
+	range_s = canonizeRanges([]*Range{
+		NewRange(9, 9),   // \t
+		NewRange(10, 10), // \n
+		NewRange(12, 12), // \f
+		NewRange(13, 13), // \r
+		NewRange(32, 32), // ' ' (a space)
+	})
+	range_S = invertRanges(range_s)
+	range_w = canonizeRanges([]*Range{
+		NewRange(48, 57),  // 0-9
+		NewRange(65, 90),  // A-Z
+		NewRange(97, 122), // a-z
+		NewRange(95, 95),  // _
+	})
+	range_W = invertRanges(range_w)
+)
+
+func (p *parser) builtInClass(i int) (int, AST, *ParseError) {
+	if p.text[i] != '\\' {
+		return i, nil, Errorf(p.text, i, "Not the start of built-in character class %q", string([]byte{p.text[i]}))
+	}
+	if i+1 < len(p.text) {
+		if p.text[i+1] == 'd' {
+			return i + 2, rangesToAST(range_d), nil
+		} else if p.text[i+1] == 'D' {
+			return i + 2, rangesToAST(range_D), nil
+		} else if p.text[i+1] == 's' {
+			return i + 2, rangesToAST(range_s), nil
+		} else if p.text[i+1] == 'S' {
+			return i + 2, rangesToAST(range_S), nil
+		} else if p.text[i+1] == 'w' {
+			return i + 2, rangesToAST(range_w), nil
+		} else if p.text[i+1] == 'W' {
+			return i + 2, rangesToAST(range_W), nil
+		}
+		return i, nil, Errorf(p.text, i, "Unknown class %q", string([]byte{p.text[i+1]}))
+	}
+	return i, nil, Errorf(p.text, i, "Unexpected EOS")
+}
+
 func (p *parser) getByte(i int) (int, byte, *ParseError) {
 	i, err := p.match(i, '\\')
 	if err == nil {
 		if i < len(p.text) && p.text[i] == 'n' {
-			return i, '\n', nil
+			return i + 1, '\n', nil
 		} else if i < len(p.text) && p.text[i] == 'r' {
-			return i, '\r', nil
+			return i + 1, '\r', nil
 		} else if i < len(p.text) && p.text[i] == 't' {
-			return i, '\t', nil
+			return i + 1, '\t', nil
 		}
-		return i, p.text[i], nil
+		return i + 1, p.text[i], nil
 	}
 	if i >= len(p.text) {
 		return i, 0, Errorf(p.text, i, "ran out of p.text at %d", i)
@@ -357,11 +404,11 @@ func (p *parser) charClass(i int) (int, AST, *ParseError) {
 	if err != nil {
 		return i, nil, err
 	}
-	ranges = p.combineOverlaps(ranges)
+	ranges = canonizeRanges(ranges)
 	if exclude {
-		ranges = p.invertRanges(ranges)
+		ranges = invertRanges(ranges)
 	}
-	ast := p.rangesToAST(ranges)
+	ast := rangesToAST(ranges)
 	return i, ast, err
 }
 
@@ -381,7 +428,7 @@ func (p *parser) charClassItem(i int) (int, *Range, *ParseError) {
 	return i, NewRange(S, T), nil
 }
 
-func (p *parser) combineOverlaps(from []*Range) []*Range {
+func canonizeRanges(from []*Range) []*Range {
 	sort.SliceStable(from, func(i, j int) bool {
 		return from[i].From < from[j].From || (from[i].From == from[j].From && from[i].To < from[j].To)
 	})
@@ -412,7 +459,7 @@ func (p *parser) combineOverlaps(from []*Range) []*Range {
 // Expects p.combineOverlaps() to have been run on orig s.t. there are no
 // overlapping ranges, the ranges are sorted, and all ranges are separated by at
 // least one character.
-func (p *parser) invertRanges(orig []*Range) []*Range {
+func invertRanges(orig []*Range) []*Range {
 	if len(orig) <= 0 {
 		return []*Range{NewAny()}
 	}
@@ -434,7 +481,7 @@ func (p *parser) invertRanges(orig []*Range) []*Range {
 // Expects p.combineOverlaps() to have been run on orig s.t. there are no
 // overlapping ranges, the ranges are sorted, and all ranges are separated by at
 // least one character.
-func (p *parser) rangesToAST(ranges []*Range) AST {
+func rangesToAST(ranges []*Range) AST {
 	if len(ranges) == 0 {
 		panic("no ranges")
 	} else if len(ranges) == 1 {
