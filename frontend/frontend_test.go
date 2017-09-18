@@ -14,7 +14,7 @@ func TestParse(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (Alternation (Concat (Character a), (Character b), (? (Alternation (Character a), (Alternation (Character c), (Character d)))), (Character w), (* (Character e)), (Character \\), (Character [), (Character .), (Range 0 255), (+ (Range 115 102))), (Concat (Character q), (Character y), (Character x))))"
+	parsed := "(Match (Alternation (Concat (Character a), (Character b), (? (Alternation (Character a), (Alternation (Character c), (Character d)))), (Character w), (* (Character e)), (Character \\), (Character [), (Character .), (Range 0 255), (+ (Range 102 115))), (Concat (Character q), (Character y), (Character x))))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -39,6 +39,15 @@ func t_match(program inst.InstSlice, text string, t *test.T) {
 		i++
 	}
 	t.Assert(i == len(expected), "unconsumed matches %v", expected[i:])
+}
+
+func t_nomatch(program inst.InstSlice, text string, t *test.T) {
+	scan := machines.LexerEngine(program, []byte(text))
+	for tc, m, err, scan := scan(0); scan != nil; tc, m, err, scan = scan(tc) {
+		if err == nil {
+			t.Errorf("expected no match got %q, for %q", m, text)
+		}
+	}
 }
 
 func TestParseConcatAlts(x *testing.T) {
@@ -178,6 +187,135 @@ func TestIdent(x *testing.T) {
 	t_match(program, "A", t)
 	t_match(program, "AAA", t)
 	t_match(program, "AAACC", t)
+}
+
+func TestMultiRangeClasses(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("([a-zA-Z])([a-zA-Z0-9_])*"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (Concat (Alternation (Range 65 90), (Range 97 122)), (* (Alternation (Range 48 57), (Alternation (Range 65 90), (Alternation (Range 95 95), (Range 97 122)))))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, "X", t)
+	t_match(program, "asdfY0923", t)
+	t_match(program, "A", t)
+	t_match(program, "AAA", t)
+	t_match(program, "AAACC", t)
+}
+
+func TestMultiRangeClasses2(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("([\\._/:a-zA-Z]+):\"(.+)\""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (Concat (+ (Alternation (Range 46 47), (Alternation (Range 58 58), (Alternation (Range 65 90), (Alternation (Range 95 95), (Range 97 122)))))), (Character :), (Character \"), (+ (Range 0 255)), (Character \")))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, ".X:\"a\"", t)
+	t_nomatch(program, ".X:a\"", t)
+}
+
+func TestInvertRangeClasses1(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("[^abcd]+"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (+ (Alternation (Range 0 96), (Range 101 255))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, "X", t)
+	t_match(program, "oiwe", t)
+	t_match(program, "ef", t)
+	t_match(program, "fin", t)
+	t_nomatch(program, "a", t)
+	t_nomatch(program, "b", t)
+	t_nomatch(program, "c", t)
+	t_nomatch(program, "d", t)
+}
+
+func TestInvertRangeClasses2(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("[^a-d]+"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (+ (Alternation (Range 0 96), (Range 101 255))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, "X", t)
+	t_match(program, "oiwe", t)
+	t_match(program, "ef", t)
+	t_match(program, "fin", t)
+	t_nomatch(program, "a", t)
+	t_nomatch(program, "b", t)
+	t_nomatch(program, "c", t)
+	t_nomatch(program, "d", t)
+}
+
+func TestInvertRangeClasses3(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("[^a-dxyz]+"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (+ (Alternation (Range 0 96), (Alternation (Range 101 119), (Range 123 255)))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, "X", t)
+	t_match(program, "oiwe", t)
+	t_match(program, "ef", t)
+	t_match(program, "fin", t)
+	t_nomatch(program, "a", t)
+	t_nomatch(program, "b", t)
+	t_nomatch(program, "c", t)
+	t_nomatch(program, "d", t)
+	t_nomatch(program, "x", t)
+	t_nomatch(program, "y", t)
+	t_nomatch(program, "z", t)
 }
 
 func TestLineComment(x *testing.T) {
