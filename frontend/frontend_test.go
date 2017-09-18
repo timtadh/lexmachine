@@ -34,7 +34,7 @@ func t_match(program inst.InstSlice, text string, t *test.T) {
 		if err != nil {
 			t.Error("error", err)
 		} else if !m.Equals(&expected[i]) {
-			t.Error(m, expected[i])
+			t.Errorf("got %q expected %q", m, expected[i])
 		}
 		i++
 	}
@@ -46,6 +46,8 @@ func t_nomatch(program inst.InstSlice, text string, t *test.T) {
 	for tc, m, err, scan := scan(0); scan != nil; tc, m, err, scan = scan(tc) {
 		if err == nil {
 			t.Errorf("expected no match got %q, for %q", m, text)
+		} else {
+			break
 		}
 	}
 }
@@ -187,6 +189,133 @@ func TestIdent(x *testing.T) {
 	t_match(program, "A", t)
 	t_match(program, "AAA", t)
 	t_match(program, "AAACC", t)
+}
+
+func TestDigitClass(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("\\d+"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (+ (Range 48 57)))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, "0123456789", t)
+	t_nomatch(program, "a234", t)
+}
+
+func TestNotDigitClass(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("\\D+"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (+ (Alternation (Range 0 47), (Range 58 255))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, "wacky wizards", t)
+	t_nomatch(program, "234", t)
+}
+
+func TestSpaceClass(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("\\s+"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (+ (Alternation (Range 9 10), (Alternation (Range 12 13), (Range 32 32)))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, " \t\f\r", t)
+	t_nomatch(program, "\vasdf", t)
+}
+
+func TestNoSpaceClass(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("\\S+"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (+ (Alternation (Range 0 8), (Alternation (Range 11 11), (Alternation (Range 14 31), (Range 33 255))))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, "\vasdf", t)
+	t_nomatch(program, " \t\f\r", t)
+}
+
+func TestWordClass(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("\\w+"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (+ (Alternation (Range 48 57), (Alternation (Range 65 90), (Alternation (Range 95 95), (Range 97 122))))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, "asdf_asdf", t)
+	t_nomatch(program, " asdf", t)
+	t_nomatch(program, "@#$@#$", t)
+}
+
+func TestNoWordClass(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("\\W+"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (+ (Alternation (Range 0 47), (Alternation (Range 58 64), (Alternation (Range 91 94), (Alternation (Range 96 96), (Range 123 255)))))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	program, err := Generate(ast)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(program)
+	t_match(program, " @#$", t)
+	t_nomatch(program, "asdf_asdf", t)
 }
 
 func TestMultiRangeClasses(x *testing.T) {
