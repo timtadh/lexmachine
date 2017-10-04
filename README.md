@@ -2,9 +2,8 @@
 
 By Tim Henderson
 
-Copyright 2015, All Rights Reserved. Made available to for public use
-under the terms of the GNU General Public License version 3 or any later
-version (at your option).
+Copyright 2014-2017, All Rights Reserved. Made available for public use
+under the terms of a BSD 3-Clause license.
 
 ## What?
 
