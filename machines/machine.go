@@ -159,6 +159,14 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 				case SPLIT:
 					cqueue.Push(inst.X)
 					cqueue.Push(inst.Y)
+				case CHJMP:
+					x := byte(inst.X)
+					y := byte(inst.Y)
+					if tc < len(text) && x <= text[tc] && text[tc] <= y {
+						nqueue.Push(pc + 1)
+					} else {
+						cqueue.Push(pc + 2)
+					}
 				default:
 					panic(fmt.Errorf("unexpected instruction %v", inst))
 				}

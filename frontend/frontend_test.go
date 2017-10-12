@@ -39,6 +39,25 @@ func t_match(program inst.InstSlice, text string, t *test.T) {
 		i++
 	}
 	t.Assert(i == len(expected), "unconsumed matches %v", expected[i:])
+
+	dfa := machines.ToDFA(program)
+	t.Log(dfa)
+	l := len(text)
+	if l == 0 {
+		l += 1
+	}
+	i = 0
+	scan = machines.DFALexerEngine(dfa, []byte(text))
+	for tc, m, err, scan := scan(0); scan != nil; tc, m, err, scan = scan(tc) {
+		t.Log("match", m)
+		if err != nil {
+			t.Error("error", err)
+		} else if !m.Equals(&expected[i]) {
+			t.Error(m, expected[i])
+		}
+		i++
+	}
+	t.Assert(i == len(expected), "unconsumed matches %v", expected[i:])
 }
 
 func t_nomatch(program inst.InstSlice, text string, t *test.T) {

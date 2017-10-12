@@ -3,9 +3,8 @@ package lexmachine
 import (
 	"bytes"
 	"fmt"
-)
+	"strconv"
 
-import (
 	"github.com/timtadh/lexmachine/frontend"
 	"github.com/timtadh/lexmachine/inst"
 	"github.com/timtadh/lexmachine/machines"
@@ -40,7 +39,7 @@ func (self *Token) Equals(other *Token) bool {
 }
 
 func (self *Token) String() string {
-	return fmt.Sprintf("%d %v %d (%d, %d)-(%d, %d)", self.Type, self.Value, self.TC, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn)
+	return fmt.Sprintf("%d %v %d (%d, %d)-(%d, %d)", self.Type, strconv.Quote(string(self.Lexeme)), self.TC, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn)
 }
 
 type Action func(scan *Scanner, match *machines.Match) (interface{}, error)
@@ -119,7 +118,7 @@ func (self *Lexer) Scanner(text []byte) (*Scanner, error) {
 		return nil, err
 	}
 
-	scan := machines.LexerEngine(self.program, text)
+	scan := machines.DFALexerEngine(self.program, text)
 
 	// prevent the user from modifying the text under scan
 	text_copy := make([]byte, len(text))
@@ -160,16 +159,15 @@ func (self *Lexer) Compile() error {
 		lexast = frontend.NewAltMatch(asts[i], lexast)
 	}
 
-	program, err := frontend.Generate(lexast)
+	nfa, err := frontend.Generate(lexast)
 	if err != nil {
 		return err
 	}
+	fmt.Println(nfa.Serialize())
 
-	self.program = program
 	self.matches = make(map[int]int)
-
 	ast := 0
-	for i, instruction := range self.program {
+	for i, instruction := range nfa {
 		if instruction.Op == inst.MATCH {
 			self.matches[i] = ast
 			ast += 1
@@ -177,8 +175,13 @@ func (self *Lexer) Compile() error {
 	}
 
 	if len(asts) != ast {
-		panic("len(asts) != ast")
+		panic(fmt.Sprintf("len(asts) != ast, %v != %v", len(asts), ast))
 	}
+
+	// TODO: DFA contruction needs to track NFA MATCH identity before this will
+	// work correctly.
+	dfa := machines.ToDFA(nfa)
+	self.program = dfa
 
 	return nil
 }
