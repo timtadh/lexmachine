@@ -12,6 +12,7 @@ type generator struct {
 	program inst.InstSlice
 }
 
+// Generate an NFA program from the AST for a regular expression.
 func Generate(ast AST) (inst.InstSlice, error) {
 	g := &generator{
 		program: make([]*inst.Inst, 0, 100),

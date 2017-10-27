@@ -5,64 +5,79 @@ import (
 	"strings"
 )
 
+// AST is an abstract syntax tree for a regular expression.
 type AST interface {
 	String() string
 }
 
+// AltMatch either match A or B and then finalize matching the string
 type AltMatch struct {
 	A AST
 	B AST
 }
 
+// String humanizes the subtree
 func (self *AltMatch) String() string {
 	return fmt.Sprintf("(AltMatch %v, %v)", self.A, self.B)
 }
 
+// Match the tree AST finalizes the matching
 type Match struct {
 	AST
 }
 
+// String humanizes the subtree
 func (self *Match) String() string {
 	return fmt.Sprintf("(Match %v)", self.AST)
 }
 
+// Alternation matches A or B
 type Alternation struct {
 	A AST
 	B AST
 }
 
+// String humanizes the subtree
 func (self *Alternation) String() string {
 	return fmt.Sprintf("(Alternation %v, %v)", self.A, self.B)
 }
 
+// Star is a kleene star (that is a repetition operator). Matches 0 or more times.
 type Star struct {
 	AST
 }
 
+// String humanizes the subtree
 func (self *Star) String() string {
 	return fmt.Sprintf("(* %v)", self.AST)
 }
 
+// Plus matches 1 or more times
 type Plus struct {
 	AST
 }
 
+// String humanizes the subtree
 func (self *Plus) String() string {
 	return fmt.Sprintf("(+ %v)", self.AST)
 }
 
+// Maybe matches 0 or 1 times
 type Maybe struct {
 	AST
 }
 
+// String humanizes the subtree
 func (self *Maybe) String() string {
 	return fmt.Sprintf("(? %v)", self.AST)
 }
 
+// Concat matches each item in sequence
 type Concat struct {
 	Items []AST
 }
 
+// String humanizes the subtree
 func (self *Concat) String() string {
 	s := "(Concat "
 	items := make([]string, 0, len(self.Items))
@@ -73,11 +88,13 @@ func (self *Concat) String() string {
 	return s
 }
 
+// Range matches byte ranges From-To inclusive
 type Range struct {
 	From byte
 	To   byte
 }
 
+// String humanizes the subtree
 func (self *Range) String() string {
 	return fmt.Sprintf(
 		"(Range %d %d)",
@@ -86,10 +103,12 @@ func (self *Range) String() string {
 	)
 }
 
+// Character matches a single byte
 type Character struct {
 	Char byte
 }
 
+// String humanizes the subtree
 func (self *Character) String() string {
 	return fmt.Sprintf(
 		"(Character %s)",
@@ -97,6 +116,7 @@ func (self *Character) String() string {
 	)
 }
 
+// NewAltMatch creates an AltMatch
 func NewAltMatch(a, b AST) AST {
 	if a == nil || b == nil {
 		panic("Alt match does not except nils")
@@ -104,10 +124,12 @@ func NewAltMatch(a, b AST) AST {
 	return &AltMatch{a, b}
 }
 
+// NewMatch create a Match
 func NewMatch(ast AST) AST {
 	return &Match{ast}
 }
 
+// NewAlternation creates an Alternation
 func NewAlternation(choice, alternation AST) AST {
 	if alternation == nil {
 		return choice
@@ -115,6 +137,7 @@ func NewAlternation(choice, alternation AST) AST {
 	return &Alternation{choice, alternation}
 }
 
+// NewApplyOp applies a given op (Star, Plus, Maybe) to a tree
 func NewApplyOp(op, atomic AST) AST {
 	switch o := op.(type) {
 	case *Star:
@@ -129,6 +152,7 @@ func NewApplyOp(op, atomic AST) AST {
 	return op
 }
 
+// NewOp constructs a Star, Plus, or Maybe from *, +, ? respectively
 func NewOp(op string) AST {
 	switch op {
 	case "*":
@@ -142,6 +166,7 @@ func NewOp(op string) AST {
 	}
 }
 
+// NewConcat concatenates two tree together
 func NewConcat(char, concat AST) AST {
 	if concat == nil {
 		return char
@@ -157,14 +182,17 @@ func NewConcat(char, concat AST) AST {
 	return &Concat{[]AST{char, concat}}
 }
 
+// NewCharacter constructs a character
 func NewCharacter(b byte) *Character {
 	return &Character{b}
 }
 
+// NewAny constructs the . operator
 func NewAny() *Range {
 	return &Range{From: 0, To: 255}
 }
 
+// NewRange constructs a range operator
 func NewRange(from, to byte) *Range {
 	if from <= to {
 		return &Range{From: from, To: to}
