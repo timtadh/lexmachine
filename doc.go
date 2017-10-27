@@ -6,10 +6,12 @@
 // match. So if you want to support nested C-style comments or other paired
 // structures you can do so at the lexical analysis stage.
 //
+// For a tutorial see
+// http://hackthology.com/writing-a-lexer-in-go-with-lexmachine.html
+//
 // Example of defining a lexer
 //
 //     // CreateLexer defines a lexer for the graphviz dot language.
-//     // See http://hackthology.com/writing-a-lexer-in-go-with-lexmachine.html
 //     func CreateLexer() (*lexmachine.Lexer, error) {
 //         lexer := lexmachine.NewLexer()
 //
@@ -94,7 +96,7 @@
 //         }
 //         fmt.Println("Type    | Lexeme     | Position")
 //         fmt.Println("--------+------------+------------")
-//         for tok, err, eof := scanner.Next(); !eof; tok, err, eof = scanner.Next() {
+//         for tok, err, eos := scanner.Next(); !eos; tok, err, eos = scanner.Next() {
 //             if err != nil {
 //                 return err
 //             }
