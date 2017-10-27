@@ -24,113 +24,113 @@ func Generate(ast AST) (inst.InstSlice, error) {
 	return g.program, nil
 }
 
-func (self *generator) gen(ast AST) (fill []*uint32) {
+func (g *generator) gen(ast AST) (fill []*uint32) {
 	switch n := ast.(type) {
 	case *AltMatch:
-		fill = self.altMatch(n)
+		fill = g.altMatch(n)
 	case *Match:
-		fill = self.match(n)
+		fill = g.match(n)
 	case *Alternation:
-		fill = self.alt(n)
+		fill = g.alt(n)
 	case *Star:
-		fill = self.star(n)
+		fill = g.star(n)
 	case *Plus:
-		fill = self.plus(n)
+		fill = g.plus(n)
 	case *Maybe:
-		fill = self.maybe(n)
+		fill = g.maybe(n)
 	case *Concat:
-		fill = self.concat(n)
+		fill = g.concat(n)
 	case *Character:
-		fill = self.character(n)
+		fill = g.character(n)
 	case *Range:
-		fill = self.rangeGen(n)
+		fill = g.rangeGen(n)
 	}
 	return fill
 }
 
-func (self *generator) dofill(fill []*uint32) {
+func (g *generator) dofill(fill []*uint32) {
 	for _, jmp := range fill {
-		*jmp = uint32(len(self.program))
+		*jmp = uint32(len(g.program))
 	}
 }
 
-func (self *generator) altMatch(a *AltMatch) []*uint32 {
+func (g *generator) altMatch(a *AltMatch) []*uint32 {
 	split := inst.New(inst.SPLIT, 0, 0)
-	self.program = append(self.program, split)
-	split.X = uint32(len(self.program))
-	self.gen(a.A)
-	split.Y = uint32(len(self.program))
-	self.gen(a.B)
+	g.program = append(g.program, split)
+	split.X = uint32(len(g.program))
+	g.gen(a.A)
+	split.Y = uint32(len(g.program))
+	g.gen(a.B)
 	return nil
 }
 
-func (self *generator) match(m *Match) []*uint32 {
-	self.dofill(self.gen(m.AST))
-	self.program = append(
-		self.program, inst.New(inst.MATCH, 0, 0))
+func (g *generator) match(m *Match) []*uint32 {
+	g.dofill(g.gen(m.AST))
+	g.program = append(
+		g.program, inst.New(inst.MATCH, 0, 0))
 	return nil
 }
 
-func (self *generator) alt(a *Alternation) (fill []*uint32) {
+func (g *generator) alt(a *Alternation) (fill []*uint32) {
 	split := inst.New(inst.SPLIT, 0, 0)
-	self.program = append(self.program, split)
-	split.X = uint32(len(self.program))
-	self.dofill(self.gen(a.A))
+	g.program = append(g.program, split)
+	split.X = uint32(len(g.program))
+	g.dofill(g.gen(a.A))
 	jmp := inst.New(inst.JMP, 0, 0)
-	self.program = append(self.program, jmp)
-	split.Y = uint32(len(self.program))
-	fill = self.gen(a.B)
+	g.program = append(g.program, jmp)
+	split.Y = uint32(len(g.program))
+	fill = g.gen(a.B)
 	fill = append(fill, &jmp.X)
 	return fill
 }
 
-func (self *generator) repeat(ast AST) (fill []*uint32) {
+func (g *generator) repeat(ast AST) (fill []*uint32) {
 	split := inst.New(inst.SPLIT, 0, 0)
-	split_pos := uint32(len(self.program))
-	self.program = append(self.program, split)
-	split.X = uint32(len(self.program))
-	self.dofill(self.gen(ast))
+	split_pos := uint32(len(g.program))
+	g.program = append(g.program, split)
+	split.X = uint32(len(g.program))
+	g.dofill(g.gen(ast))
 	jmp := inst.New(inst.JMP, split_pos, 0)
-	self.program = append(self.program, jmp)
+	g.program = append(g.program, jmp)
 	return []*uint32{&split.Y}
 }
 
-func (self *generator) star(s *Star) (fill []*uint32) {
-	return self.repeat(s.AST)
+func (g *generator) star(s *Star) (fill []*uint32) {
+	return g.repeat(s.AST)
 }
 
-func (self *generator) plus(p *Plus) (fill []*uint32) {
-	self.dofill(self.gen(p.AST))
-	return self.repeat(p.AST)
+func (g *generator) plus(p *Plus) (fill []*uint32) {
+	g.dofill(g.gen(p.AST))
+	return g.repeat(p.AST)
 }
 
-func (self *generator) maybe(m *Maybe) (fill []*uint32) {
+func (g *generator) maybe(m *Maybe) (fill []*uint32) {
 	split := inst.New(inst.SPLIT, 0, 0)
-	self.program = append(self.program, split)
-	split.X = uint32(len(self.program))
-	fill = self.gen(m.AST)
+	g.program = append(g.program, split)
+	split.X = uint32(len(g.program))
+	fill = g.gen(m.AST)
 	fill = append(fill, &split.Y)
 	return fill
 }
 
-func (self *generator) concat(c *Concat) (fill []*uint32) {
+func (g *generator) concat(c *Concat) (fill []*uint32) {
 	for _, ast := range c.Items {
-		self.dofill(fill)
-		fill = self.gen(ast)
+		g.dofill(fill)
+		fill = g.gen(ast)
 	}
 	return fill
 }
 
-func (self *generator) character(ch *Character) []*uint32 {
-	self.program = append(
-		self.program,
+func (g *generator) character(ch *Character) []*uint32 {
+	g.program = append(
+		g.program,
 		inst.New(inst.CHAR, uint32(ch.Char), uint32(ch.Char)))
 	return nil
 }
 
-func (self *generator) rangeGen(r *Range) []*uint32 {
-	self.program = append(
-		self.program,
+func (g *generator) rangeGen(r *Range) []*uint32 {
+	g.program = append(
+		g.program,
 		inst.New(inst.CHAR, uint32(r.From), uint32(r.To)))
 	return nil
 }

@@ -17,8 +17,8 @@ type AltMatch struct {
 }
 
 // String humanizes the subtree
-func (self *AltMatch) String() string {
-	return fmt.Sprintf("(AltMatch %v, %v)", self.A, self.B)
+func (a *AltMatch) String() string {
+	return fmt.Sprintf("(AltMatch %v, %v)", a.A, a.B)
 }
 
 // Match the tree AST finalizes the matching
@@ -27,8 +27,8 @@ type Match struct {
 }
 
 // String humanizes the subtree
-func (self *Match) String() string {
-	return fmt.Sprintf("(Match %v)", self.AST)
+func (m *Match) String() string {
+	return fmt.Sprintf("(Match %v)", m.AST)
 }
 
 // Alternation matches A or B
@@ -38,8 +38,8 @@ type Alternation struct {
 }
 
 // String humanizes the subtree
-func (self *Alternation) String() string {
-	return fmt.Sprintf("(Alternation %v, %v)", self.A, self.B)
+func (a *Alternation) String() string {
+	return fmt.Sprintf("(Alternation %v, %v)", a.A, a.B)
 }
 
 // Star is a kleene star (that is a repetition operator). Matches 0 or more times.
@@ -48,8 +48,8 @@ type Star struct {
 }
 
 // String humanizes the subtree
-func (self *Star) String() string {
-	return fmt.Sprintf("(* %v)", self.AST)
+func (s *Star) String() string {
+	return fmt.Sprintf("(* %v)", s.AST)
 }
 
 // Plus matches 1 or more times
@@ -58,8 +58,8 @@ type Plus struct {
 }
 
 // String humanizes the subtree
-func (self *Plus) String() string {
-	return fmt.Sprintf("(+ %v)", self.AST)
+func (p *Plus) String() string {
+	return fmt.Sprintf("(+ %v)", p.AST)
 }
 
 // Maybe matches 0 or 1 times
@@ -68,8 +68,8 @@ type Maybe struct {
 }
 
 // String humanizes the subtree
-func (self *Maybe) String() string {
-	return fmt.Sprintf("(? %v)", self.AST)
+func (m *Maybe) String() string {
+	return fmt.Sprintf("(? %v)", m.AST)
 }
 
 // Concat matches each item in sequence
@@ -78,10 +78,10 @@ type Concat struct {
 }
 
 // String humanizes the subtree
-func (self *Concat) String() string {
+func (c *Concat) String() string {
 	s := "(Concat "
-	items := make([]string, 0, len(self.Items))
-	for _, i := range self.Items {
+	items := make([]string, 0, len(c.Items))
+	for _, i := range c.Items {
 		items = append(items, i.String())
 	}
 	s += strings.Join(items, ", ") + ")"
@@ -95,11 +95,11 @@ type Range struct {
 }
 
 // String humanizes the subtree
-func (self *Range) String() string {
+func (r *Range) String() string {
 	return fmt.Sprintf(
 		"(Range %d %d)",
-		self.From,
-		self.To,
+		r.From,
+		r.To,
 	)
 }
 
@@ -109,10 +109,10 @@ type Character struct {
 }
 
 // String humanizes the subtree
-func (self *Character) String() string {
+func (c *Character) String() string {
 	return fmt.Sprintf(
 		"(Character %s)",
-		string([]byte{self.Char}),
+		string([]byte{c.Char}),
 	)
 }
 
@@ -196,7 +196,6 @@ func NewAny() *Range {
 func NewRange(from, to byte) *Range {
 	if from <= to {
 		return &Range{From: from, To: to}
-	} else {
-		return &Range{From: to, To: from}
 	}
+	return &Range{From: to, To: from}
 }

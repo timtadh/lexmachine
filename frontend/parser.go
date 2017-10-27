@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	DEBUG = false
+	DEBUG = false // turn on debug prints
 )
 
 // ParseError gives structured errors for parsing problems.
@@ -82,15 +82,15 @@ func LineCol(text []byte, tc int) (line int, col int) {
 	for i := 0; i <= tc && i < len(text); i++ {
 		if text[i] == '\n' {
 			col = 0
-			line += 1
+			line++
 		} else {
-			col += 1
+			col++
 		}
 	}
 	if tc == 0 && tc < len(text) {
 		if text[tc] == '\n' {
-			line += 1
-			col -= 1
+			line++
+			col--
 		}
 	}
 	return line, col
