@@ -130,6 +130,12 @@ type Scanner struct {
 //         fmt.Println(tok)
 //     }
 //
+// One useful error type which could be returned by Next() is a
+// match.UnconsumedInput which provides the position information for where in
+// the text the scanning failed.
+//
+// For more information on functional iterators see:
+// http://hackthology.com/functional-iteration-in-go.html
 func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
 	var token interface{}
 	for token == nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/timtadh/lexmachine/queue"
 )
 
+// UnconsumedInput error type
 type UnconsumedInput struct {
 	StartTC     int
 	FailTC      int
@@ -20,6 +21,7 @@ type UnconsumedInput struct {
 	Text        []byte
 }
 
+// Error implements the error interface
 func (u *UnconsumedInput) Error() string {
 	min := func(a, b int) int {
 		if a < b {
@@ -36,6 +38,7 @@ func (u *UnconsumedInput) Error() string {
 	)
 }
 
+// A Match represents the positional and textual information from a match.
 type Match struct {
 	PC          int
 	TC          int
@@ -43,7 +46,7 @@ type Match struct {
 	StartColumn int
 	EndLine     int
 	EndColumn   int
-	Bytes       []byte
+	Bytes       []byte // the actual bytes matched during scanning.
 }
 
 func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
@@ -82,6 +85,7 @@ func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
 	return line, col
 }
 
+// Equals checks two matches for equality
 func (self *Match) Equals(other *Match) bool {
 	if self == nil && other == nil {
 		return true
@@ -98,12 +102,18 @@ func (self *Match) Equals(other *Match) bool {
 		bytes.Equal(self.Bytes, other.Bytes)
 }
 
+// String formats the match for humans
 func (self Match) String() string {
 	return fmt.Sprintf("<Match %d %d (%d, %d)-(%d, %d) '%v'>", self.PC, self.TC, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn, string(self.Bytes))
 }
 
+// Scanner is a functional iterator returned by the LexerEngine. See
+// http://hackthology.com/functional-iteration-in-go.html
 type Scanner func(int) (int, *Match, error, Scanner)
 
+// LexerEngine does the actual tokenization of the byte slice text using the
+// NFA bytecode in program. If the lexing process fails the Scanner will return
+// an UnconsumedInput error.
 func LexerEngine(program InstSlice, text []byte) Scanner {
 	done := false
 	match_pc := -1
