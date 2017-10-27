@@ -126,6 +126,6 @@ func TestSimple(t *testing.T) {
 		if !tok.Equals(expected[i]) {
 			t.Errorf("got wrong token got %v, expected %v", tok, expected[i])
 		}
-		i += 1
+		i++
 	}
 }

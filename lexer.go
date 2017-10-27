@@ -57,11 +57,11 @@ func (t *Token) String() string {
 	return fmt.Sprintf("%d %v %d (%d, %d)-(%d, %d)", t.Type, t.Value, t.TC, t.StartLine, t.StartColumn, t.EndLine, t.EndColumn)
 }
 
-// Actions are functions which get called when the Scanner finds a match during
-// the lexing process. They turn a low level machines.Match struct into a token
-// for the users program. As different compilers/interpretters/parsers have
-// different needs Actions merely return an interface{}. This allows you to
-// represent a token in anyway you wish. An example Token struct is provided
+// An Action is a function which get called when the Scanner finds a match
+// during the lexing process. They turn a low level machines.Match struct into
+// a token for the users program. As different compilers/interpretters/parsers
+// have different needs Actions merely return an interface{}. This allows you
+// to represent a token in anyway you wish. An example Token struct is provided
 // above.
 type Action func(scan *Scanner, match *machines.Match) (interface{}, error)
 
@@ -103,15 +103,15 @@ type Lexer struct {
 //     }
 //
 type Scanner struct {
-	lexer    *Lexer
-	scan     machines.Scanner
-	Text     []byte
-	TC       int
-	pTC      int
-	s_line   int
-	s_column int
-	e_line   int
-	e_column int
+	lexer   *Lexer
+	scan    machines.Scanner
+	Text    []byte
+	TC      int
+	pTC     int
+	sLine   int
+	sColumn int
+	eLine   int
+	eColumn int
 }
 
 // Next iterates through the string being scanned returning one token at a time
@@ -131,7 +131,7 @@ type Scanner struct {
 //     }
 //
 func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
-	var token interface{} = nil
+	var token interface{}
 	for token == nil {
 		tc, match, err, scan := s.scan(s.TC)
 		if scan == nil {
@@ -144,10 +144,10 @@ func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
 		s.scan = scan
 		s.pTC = s.TC
 		s.TC = tc
-		s.s_line = match.StartLine
-		s.s_column = match.StartColumn
-		s.e_line = match.EndLine
-		s.e_column = match.EndColumn
+		s.sLine = match.StartLine
+		s.sColumn = match.StartColumn
+		s.eLine = match.EndLine
+		s.eColumn = match.EndColumn
 
 		pattern := s.lexer.patterns[s.lexer.matches[match.PC]]
 		token, err = pattern.action(s, match)
@@ -185,13 +185,13 @@ func (l *Lexer) Scanner(text []byte) (*Scanner, error) {
 	}
 
 	// prevent the user from modifying the text under scan
-	text_copy := make([]byte, len(text))
-	copy(text_copy, text)
+	textCopy := make([]byte, len(text))
+	copy(textCopy, text)
 
 	return &Scanner{
 		lexer: l,
-		scan:  machines.LexerEngine(l.program, text_copy),
-		Text:  text_copy,
+		scan:  machines.LexerEngine(l.program, textCopy),
+		Text:  textCopy,
 		TC:    0,
 	}, nil
 }
@@ -206,7 +206,7 @@ func (l *Lexer) Add(regex []byte, action Action) {
 	l.patterns = append(l.patterns, &pattern{regex, action})
 }
 
-// Compiles the supplied patterns. You don't need to call this method (it is
+// Compile the supplied patterns. You don't need to call this method (it is
 // called automatically by Scanner). However, you may want to call this method
 // if you construct a lexer once and then use it many times as it will
 // precompile the lexing program.
@@ -244,7 +244,7 @@ func (l *Lexer) Compile() error {
 	for i, instruction := range l.program {
 		if instruction.Op == inst.MATCH {
 			l.matches[i] = ast
-			ast += 1
+			ast++
 		}
 	}
 
