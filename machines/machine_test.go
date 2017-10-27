@@ -31,7 +31,7 @@ func TestLexerMatch(t *testing.T) {
 	t.Log(program)
 	mtext := []byte("ababcbcbb")
 	expected := []Match{
-		Match{16, 0, 1, 1, 1, len(mtext), mtext},
+		{16, 0, 1, 1, 1, len(mtext), mtext},
 	}
 	i := 0
 	for tc, m, err, scan := LexerEngine(program, text)(0); scan != nil; tc, m, err, scan = scan(tc) {
@@ -111,9 +111,9 @@ func TestLexerThreeStrings(t *testing.T) {
 	t.Log(len(text))
 	t.Log(program)
 	expected := []Match{
-		Match{8, 0, 1, 1, 1, 6, []byte("struct")},
-		Match{13, 6, 1, 7, 1, 8, []byte("  ")},
-		Match{15, 8, 1, 9, 1, 9, []byte("*")},
+		{8, 0, 1, 1, 1, 6, []byte("struct")},
+		{13, 6, 1, 7, 1, 8, []byte("  ")},
+		{15, 8, 1, 9, 1, 9, []byte("*")},
 	}
 
 	i := 0
@@ -162,9 +162,9 @@ func TestLexerRestart(t *testing.T) {
 	t.Log(len(text))
 	t.Log(program)
 	expected := []Match{
-		Match{8, 0, 1, 1, 1, 6, []byte("struct")},
-		Match{19, 6, 2, 0, 2, 2, []byte("\n  ")},
-		Match{21, 9, 2, 3, 2, 3, []byte("*")},
+		{8, 0, 1, 1, 1, 6, []byte("struct")},
+		{19, 6, 2, 0, 2, 2, []byte("\n  ")},
+		{21, 9, 2, 3, 2, 3, []byte("*")},
 	}
 
 	check := func(m *Match, i int, err error) {

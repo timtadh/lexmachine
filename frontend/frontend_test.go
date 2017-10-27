@@ -23,7 +23,7 @@ func TestParse(x *testing.T) {
 }
 
 func t_match(program inst.InstSlice, text string, t *test.T) {
-	expected := []machines.Match{machines.Match{len(program) - 1, 0, 1, 1, 1, len(text), []byte(text)}}
+	expected := []machines.Match{{len(program) - 1, 0, 1, 1, 1, len(text), []byte(text)}}
 	if expected[0].EndColumn == 0 {
 		expected[0].EndColumn = 1
 	}

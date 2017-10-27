@@ -98,21 +98,21 @@ func TestSimple(t *testing.T) {
 	}
 
 	expected := []*Token{
-		&Token{NAME, "name", []byte("name"), 3, 2, 3, 2, 6},
-		&Token{EQUALS, nil, []byte("="), 8, 2, 8, 2, 8},
-		&Token{NUMBER, 10, []byte("10"), 10, 2, 10, 2, 11},
-		&Token{PRINT, nil, []byte("print"), 15, 3, 3, 3, 7},
-		&Token{NAME, "name", []byte("name"), 21, 3, 9, 3, 12},
-		&Token{PRINT, nil, []byte("print"), 28, 4, 3, 4, 7},
-		&Token{NAME, "fred", []byte("fred"), 34, 4, 9, 4, 12},
-		&Token{NAME, "name", []byte("name"), 41, 5, 3, 5, 6},
-		&Token{EQUALS, nil, []byte("="), 46, 5, 8, 5, 8},
-		&Token{NUMBER, 12, []byte("12"), 47, 5, 9, 5, 10},
-		&Token{NAME, "printname", []byte("printname"), 112, 9, 11, 9, 19},
-		&Token{EQUALS, nil, []byte("="), 122, 9, 21, 9, 21},
-		&Token{NUMBER, 13, []byte("13"), 124, 9, 23, 9, 24},
-		&Token{PRINT, nil, []byte("print"), 129, 10, 3, 10, 7},
-		&Token{NAME, "printname", []byte("printname"), 135, 10, 9, 10, 17},
+		{NAME, "name", []byte("name"), 3, 2, 3, 2, 6},
+		{EQUALS, nil, []byte("="), 8, 2, 8, 2, 8},
+		{NUMBER, 10, []byte("10"), 10, 2, 10, 2, 11},
+		{PRINT, nil, []byte("print"), 15, 3, 3, 3, 7},
+		{NAME, "name", []byte("name"), 21, 3, 9, 3, 12},
+		{PRINT, nil, []byte("print"), 28, 4, 3, 4, 7},
+		{NAME, "fred", []byte("fred"), 34, 4, 9, 4, 12},
+		{NAME, "name", []byte("name"), 41, 5, 3, 5, 6},
+		{EQUALS, nil, []byte("="), 46, 5, 8, 5, 8},
+		{NUMBER, 12, []byte("12"), 47, 5, 9, 5, 10},
+		{NAME, "printname", []byte("printname"), 112, 9, 11, 9, 19},
+		{EQUALS, nil, []byte("="), 122, 9, 21, 9, 21},
+		{NUMBER, 13, []byte("13"), 124, 9, 23, 9, 24},
+		{PRINT, nil, []byte("print"), 129, 10, 3, 10, 7},
+		{NAME, "printname", []byte("printname"), 135, 10, 9, 10, 17},
 	}
 
 	t.Log(lexer.program.Serialize())
