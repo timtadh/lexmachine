@@ -1,10 +1,11 @@
-// `lexmachine` is a full lexical analysis framework for the Go programming
-// language. It supports a restricted but usable set of regular expressions
-// appropriate for writing lexers for complex programming languages. The
-// framework also supports sub-lexers and non-regular lexing through an "escape
-// hatch" which allows the users to consume any number of further bytes after a
-// match. So if you want to support nested C-style comments or other paired
-// structures you can do so at the lexical analysis stage.
+// Package lexmachine is a full lexical analysis framework for the Go
+// programming language. It supports a restricted but usable set of regular
+// expressions appropriate for writing lexers for complex programming
+// languages. The framework also supports sub-lexers and non-regular lexing
+// through an "escape hatch" which allows the users to consume any number of
+// further bytes after a match. So if you want to support nested C-style
+// comments or other paired structures you can do so at the lexical analysis
+// stage.
 //
 // For a tutorial see
 // http://hackthology.com/writing-a-lexer-in-go-with-lexmachine.html
