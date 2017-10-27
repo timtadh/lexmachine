@@ -57,7 +57,7 @@ func computeLineCol(text []byte, prevTC, tc, line, col int) (int, int) {
 	if tc < prevTC {
 		for i := prevTC; i > tc && i > 0; i-- {
 			if text[i] == '\n' {
-				line -= 1
+				line--
 			}
 		}
 		col = 0
@@ -87,25 +87,25 @@ func computeLineCol(text []byte, prevTC, tc, line, col int) (int, int) {
 }
 
 // Equals checks two matches for equality
-func (self *Match) Equals(other *Match) bool {
-	if self == nil && other == nil {
+func (m *Match) Equals(other *Match) bool {
+	if m == nil && other == nil {
 		return true
-	} else if self == nil {
+	} else if m == nil {
 		return false
 	} else if other == nil {
 		return false
 	}
-	return self.PC == other.PC &&
-		self.StartLine == other.StartLine &&
-		self.StartColumn == other.StartColumn &&
-		self.EndLine == other.EndLine &&
-		self.EndColumn == other.EndColumn &&
-		bytes.Equal(self.Bytes, other.Bytes)
+	return m.PC == other.PC &&
+		m.StartLine == other.StartLine &&
+		m.StartColumn == other.StartColumn &&
+		m.EndLine == other.EndLine &&
+		m.EndColumn == other.EndColumn &&
+		bytes.Equal(m.Bytes, other.Bytes)
 }
 
 // String formats the match for humans
-func (self Match) String() string {
-	return fmt.Sprintf("<Match %d %d (%d, %d)-(%d, %d) '%v'>", self.PC, self.TC, self.StartLine, self.StartColumn, self.EndLine, self.EndColumn, string(self.Bytes))
+func (m Match) String() string {
+	return fmt.Sprintf("<Match %d %d (%d, %d)-(%d, %d) '%v'>", m.PC, m.TC, m.StartLine, m.StartColumn, m.EndLine, m.EndColumn, string(m.Bytes))
 }
 
 // Scanner is a functional iterator returned by the LexerEngine. See
@@ -177,14 +177,14 @@ func LexerEngine(program inst.InstSlice, text []byte) Scanner {
 			cqueue, nqueue = nqueue, cqueue
 			if cqueue.Empty() && matchPC > -1 {
 				line, col = computeLineCol(text, prevTC, startTC, line, col)
-				e_line, e_col := computeLineCol(text, startTC, matchTC-1, line, col)
+				eLine, eCol := computeLineCol(text, startTC, matchTC-1, line, col)
 				match := &Match{
 					PC:          matchPC,
 					TC:          startTC,
 					StartLine:   line,
 					StartColumn: col,
-					EndLine:     e_line,
-					EndColumn:   e_col,
+					EndLine:     eLine,
+					EndColumn:   eCol,
 					Bytes:       text[startTC:matchTC],
 				}
 				prevTC = startTC
