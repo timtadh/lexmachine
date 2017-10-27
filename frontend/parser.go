@@ -1,3 +1,5 @@
+// Package frontend parses regular expressions and compiles them into NFA
+// bytecode
 package frontend
 
 import (
@@ -12,6 +14,7 @@ var (
 	DEBUG = false
 )
 
+// ParseError gives structured errors for parsing problems.
 type ParseError struct {
 	Reason     string
 	Production string
@@ -20,6 +23,7 @@ type ParseError struct {
 	chain      []*ParseError
 }
 
+// Errorf constructs a parse error with format for a particular location.
 func Errorf(text []byte, tc int, format string, args ...interface{}) *ParseError {
 	pc, _, _, ok := runtime.Caller(1)
 	return errorf(pc, ok, text, tc, format, args...)
@@ -46,6 +50,7 @@ func errorf(pc uintptr, ok bool, text []byte, tc int, format string, args ...int
 	}
 }
 
+// Error implements the error interface
 func (p *ParseError) Error() string {
 	errs := make([]string, 0, len(p.chain)+1)
 	for i := len(p.chain) - 1; i >= 0; i-- {
@@ -61,15 +66,18 @@ func (p *ParseError) error() string {
 		p.Production, p.TC, line, col, p.text[p.TC:], p.Reason)
 }
 
+// String formats the error for humans
 func (p *ParseError) String() string {
 	return p.Error()
 }
 
+// Chain joins multiple ParseErrors together
 func (p *ParseError) Chain(e *ParseError) *ParseError {
 	p.chain = append(p.chain, e)
 	return p
 }
 
+// Compute the line and column of a particular index inside of a byte slice.
 func LineCol(text []byte, tc int) (line int, col int) {
 	for i := 0; i <= tc && i < len(text); i++ {
 		if text[i] == '\n' {
@@ -88,6 +96,7 @@ func LineCol(text []byte, tc int) (line int, col int) {
 	return line, col
 }
 
+// Parse a regular expression into an Abstract Syntax Tree (AST)
 func Parse(text []byte) (AST, error) {
 	a, err := (&parser{
 		text:      text,
@@ -283,6 +292,7 @@ func (p *parser) char(i int) (int, AST, *ParseError) {
 		"Expected a CHAR or charRange at %d, %v", i, string(p.text)).Chain(errCHAR).Chain(errRange)
 }
 
+// The CHAR token
 func (p *parser) CHAR(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter CHAR %v '%v'", i, string(p.text[i:]))
