@@ -1,3 +1,4 @@
+// Package machines implements the lexing algorithms.
 package machines
 
 import (
