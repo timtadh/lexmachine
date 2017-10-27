@@ -7,7 +7,7 @@ import (
 )
 
 import (
-	. "github.com/timtadh/lexmachine/inst"
+	"github.com/timtadh/lexmachine/inst"
 	"github.com/timtadh/lexmachine/queue"
 )
 
@@ -50,12 +50,12 @@ type Match struct {
 	Bytes       []byte // the actual bytes matched during scanning.
 }
 
-func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
+func computeLineCol(text []byte, prevTC, tc, line, col int) (int, int) {
 	if tc < 0 {
 		return line, col
 	}
-	if tc < prev_tc {
-		for i := prev_tc; i > tc && i > 0; i-- {
+	if tc < prevTC {
+		for i := prevTC; i > tc && i > 0; i-- {
 			if text[i] == '\n' {
 				line -= 1
 			}
@@ -65,22 +65,22 @@ func compute_lc(text []byte, prev_tc, tc, line, col int) (int, int) {
 			if text[i] == '\n' {
 				break
 			}
-			col += 1
+			col++
 		}
 		return line, col
 	}
-	for i := prev_tc + 1; i <= tc && i < len(text); i++ {
+	for i := prevTC + 1; i <= tc && i < len(text); i++ {
 		if text[i] == '\n' {
 			col = 0
-			line += 1
+			line++
 		} else {
-			col += 1
+			col++
 		}
 	}
-	if prev_tc == tc && tc == 0 && tc < len(text) {
+	if prevTC == tc && tc == 0 && tc < len(text) {
 		if text[tc] == '\n' {
-			line += 1
-			col -= 1
+			line++
+			col--
 		}
 	}
 	return line, col
@@ -115,12 +115,12 @@ type Scanner func(int) (int, *Match, error, Scanner)
 // LexerEngine does the actual tokenization of the byte slice text using the
 // NFA bytecode in program. If the lexing process fails the Scanner will return
 // an UnconsumedInput error.
-func LexerEngine(program InstSlice, text []byte) Scanner {
+func LexerEngine(program inst.InstSlice, text []byte) Scanner {
 	done := false
-	match_pc := -1
-	match_tc := -1
+	matchPC := -1
+	matchTC := -1
 
-	prev_tc := 0
+	prevTC := 0
 	line := 1
 	col := 1
 
@@ -130,15 +130,15 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 		if done && tc == len(text) {
 			return tc, nil, nil, nil
 		}
-		start_tc := tc
-		if tc < match_tc {
-			// we back-tracked so reset the last match_tc
-			match_tc = -1
-		} else if tc == match_tc {
+		startTC := tc
+		if tc < matchTC {
+			// we back-tracked so reset the last matchTC
+			matchTC = -1
+		} else if tc == matchTC {
 			// the caller did not reset the tc, we are where we left
-		} else if match_tc != -1 && tc > match_tc {
+		} else if matchTC != -1 && tc > matchTC {
 			// we skipped text
-			match_tc = tc
+			matchTC = tc
 		}
 		cqueue.Clear()
 		nqueue.Clear()
@@ -149,62 +149,62 @@ func LexerEngine(program InstSlice, text []byte) Scanner {
 			}
 			for !cqueue.Empty() {
 				pc := cqueue.Pop()
-				inst := program[pc]
-				switch inst.Op {
-				case CHAR:
-					x := byte(inst.X)
-					y := byte(inst.Y)
+				i := program[pc]
+				switch i.Op {
+				case inst.CHAR:
+					x := byte(i.X)
+					y := byte(i.Y)
 					if tc < len(text) && x <= text[tc] && text[tc] <= y {
 						nqueue.Push(pc + 1)
 					}
-				case MATCH:
-					if match_tc < tc {
-						match_pc = int(pc)
-						match_tc = tc
-					} else if match_pc > int(pc) {
-						match_pc = int(pc)
-						match_tc = tc
+				case inst.MATCH:
+					if matchTC < tc {
+						matchPC = int(pc)
+						matchTC = tc
+					} else if matchPC > int(pc) {
+						matchPC = int(pc)
+						matchTC = tc
 					}
-				case JMP:
-					cqueue.Push(inst.X)
-				case SPLIT:
-					cqueue.Push(inst.X)
-					cqueue.Push(inst.Y)
+				case inst.JMP:
+					cqueue.Push(i.X)
+				case inst.SPLIT:
+					cqueue.Push(i.X)
+					cqueue.Push(i.Y)
 				default:
-					panic(fmt.Errorf("unexpected instruction %v", inst))
+					panic(fmt.Errorf("unexpected instruction %v", i))
 				}
 			}
 			cqueue, nqueue = nqueue, cqueue
-			if cqueue.Empty() && match_pc > -1 {
-				line, col = compute_lc(text, prev_tc, start_tc, line, col)
-				e_line, e_col := compute_lc(text, start_tc, match_tc-1, line, col)
+			if cqueue.Empty() && matchPC > -1 {
+				line, col = computeLineCol(text, prevTC, startTC, line, col)
+				e_line, e_col := computeLineCol(text, startTC, matchTC-1, line, col)
 				match := &Match{
-					PC:          match_pc,
-					TC:          start_tc,
+					PC:          matchPC,
+					TC:          startTC,
 					StartLine:   line,
 					StartColumn: col,
 					EndLine:     e_line,
 					EndColumn:   e_col,
-					Bytes:       text[start_tc:match_tc],
+					Bytes:       text[startTC:matchTC],
 				}
-				prev_tc = start_tc
-				match_pc = -1
+				prevTC = startTC
+				matchPC = -1
 				return tc, match, nil, scan
 			}
 		}
-		if match_tc != len(text) && start_tc >= len(text) {
+		if matchTC != len(text) && startTC >= len(text) {
 			// the user has moved us farther than the text. Assume that was
 			// the intent and return EOF.
 			return tc, nil, nil, nil
-		} else if match_tc != len(text) {
+		} else if matchTC != len(text) {
 			done = true
-			if match_tc == -1 {
-				match_tc = 0
+			if matchTC == -1 {
+				matchTC = 0
 			}
-			sline, scol := compute_lc(text, 0, start_tc, 1, 1)
-			fline, fcol := compute_lc(text, 0, tc, 1, 1)
+			sline, scol := computeLineCol(text, 0, startTC, 1, 1)
+			fline, fcol := computeLineCol(text, 0, tc, 1, 1)
 			err := &UnconsumedInput{
-				StartTC:     start_tc,
+				StartTC:     startTC,
 				FailTC:      tc,
 				StartLine:   sline,
 				StartColumn: scol,

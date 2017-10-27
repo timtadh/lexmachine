@@ -87,7 +87,7 @@ func TestLexerNoMatch(t *testing.T) {
 }
 
 func TestLexerThreeStrings(t *testing.T) {
-	var text []byte = []byte("struct  *")
+	var text = []byte("struct  *")
 	program := make(inst.InstSlice, 30)
 
 	program[0] = inst.New(inst.SPLIT, 2, 1)  // go to 1 or 2/3
@@ -132,7 +132,7 @@ func TestLexerThreeStrings(t *testing.T) {
 }
 
 func TestLexerRestart(t *testing.T) {
-	var text []byte = []byte("struct\n  *")
+	var text = []byte("struct\n  *")
 	program := make(inst.InstSlice, 30)
 
 	program[0] = inst.New(inst.SPLIT, 2, 1)  // go to 1 or 2/3
