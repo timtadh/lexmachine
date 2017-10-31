@@ -8,12 +8,17 @@ import (
 // AST is an abstract syntax tree for a regular expression.
 type AST interface {
 	String() string
+	Children() []AST
 }
 
 // AltMatch either match A or B and then finalize matching the string
 type AltMatch struct {
 	A AST
 	B AST
+}
+
+func (a *AltMatch) Children() []AST {
+	return []AST{a.A, a.B}
 }
 
 // String humanizes the subtree
@@ -24,6 +29,10 @@ func (a *AltMatch) String() string {
 // Match the tree AST finalizes the matching
 type Match struct {
 	AST
+}
+
+func (m *Match) Children() []AST {
+	return []AST{m.AST}
 }
 
 // String humanizes the subtree
@@ -37,6 +46,10 @@ type Alternation struct {
 	B AST
 }
 
+func (a *Alternation) Children() []AST {
+	return []AST{a.A, a.B}
+}
+
 // String humanizes the subtree
 func (a *Alternation) String() string {
 	return fmt.Sprintf("(Alternation %v, %v)", a.A, a.B)
@@ -45,6 +58,10 @@ func (a *Alternation) String() string {
 // Star is a kleene star (that is a repetition operator). Matches 0 or more times.
 type Star struct {
 	AST
+}
+
+func (s *Star) Children() []AST {
+	return []AST{s.AST}
 }
 
 // String humanizes the subtree
@@ -57,6 +74,10 @@ type Plus struct {
 	AST
 }
 
+func (p *Plus) Children() []AST {
+	return []AST{p.AST}
+}
+
 // String humanizes the subtree
 func (p *Plus) String() string {
 	return fmt.Sprintf("(+ %v)", p.AST)
@@ -67,6 +88,10 @@ type Maybe struct {
 	AST
 }
 
+func (m *Maybe) Children() []AST {
+	return []AST{m.AST}
+}
+
 // String humanizes the subtree
 func (m *Maybe) String() string {
 	return fmt.Sprintf("(? %v)", m.AST)
@@ -75,6 +100,10 @@ func (m *Maybe) String() string {
 // Concat matches each item in sequence
 type Concat struct {
 	Items []AST
+}
+
+func (c *Concat) Children() []AST {
+	return c.Items
 }
 
 // String humanizes the subtree
@@ -94,6 +123,10 @@ type Range struct {
 	To   byte
 }
 
+func (r *Range) Children() []AST {
+	return []AST{}
+}
+
 // String humanizes the subtree
 func (r *Range) String() string {
 	return fmt.Sprintf(
@@ -106,6 +139,10 @@ func (r *Range) String() string {
 // Character matches a single byte
 type Character struct {
 	Char byte
+}
+
+func (c *Character) Children() []AST {
+	return []AST{}
 }
 
 // String humanizes the subtree
