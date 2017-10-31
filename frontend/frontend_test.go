@@ -139,6 +139,45 @@ func TestParseConcatAltPlus(x *testing.T) {
 	t_match(program, "AAABBCCD", t)
 }
 
+func TestParseAltOps(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("a|b"))
+	t.AssertNil(err)
+	parsed := "(Match (Alternation (Character a), (Character b)))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+
+	ast, err = Parse([]byte("a?|b"))
+	t.AssertNil(err)
+	parsed = "(Match (Alternation (? (Character a)), (Character b)))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+
+	ast, err = Parse([]byte("a|b?"))
+	t.AssertNil(err)
+	parsed = "(Match (Alternation (Character a), (? (Character b))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+
+	ast, err = Parse([]byte("a?|b?"))
+	t.AssertNil(err)
+	parsed = "(Match (Alternation (? (Character a)), (? (Character b))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+}
+
 func TestChainedOps(x *testing.T) {
 	t := (*test.T)(x)
 	ast, err := Parse([]byte("A?+*B*?+C+*?(x+?)**"))

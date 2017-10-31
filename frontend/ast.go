@@ -9,6 +9,7 @@ import (
 type AST interface {
 	String() string
 	Children() []AST
+	MatchesEmptyString() bool
 }
 
 // AltMatch either match A or B and then finalize matching the string
