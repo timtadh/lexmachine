@@ -10,6 +10,9 @@ type AST interface {
 	String() string
 	Children() []AST
 	MatchesEmptyString() bool
+	First() []AST // nodes which match the first character of any derived string
+	Last() []AST  // nodes which match the last character of any derived string
+	Equals(AST) bool
 }
 
 // AltMatch either match A or B and then finalize matching the string
