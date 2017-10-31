@@ -126,6 +126,9 @@ func (p *parser) regex() (AST, *ParseError) {
 func (p *parser) alternation(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter alternation %v '%v'", i, string(p.text[i:]))
+		defer func() {
+			log.Printf("exit alternation %v '%v'", i, string(p.text[i:]))
+		}()
 	}
 	i, A, err := p.atomicOps(i)
 	if err != nil {
@@ -141,6 +144,9 @@ func (p *parser) alternation(i int) (int, AST, *ParseError) {
 func (p *parser) alternation_(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter alternation_ %v '%v'", i, string(p.text[i:]))
+		defer func() {
+			log.Printf("exit alternation_ %v '%v'", i, string(p.text[i:]))
+		}()
 	}
 	if i >= len(p.text) {
 		return i, nil, nil
@@ -163,6 +169,9 @@ func (p *parser) alternation_(i int) (int, AST, *ParseError) {
 func (p *parser) atomicOps(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter atomicOps %v '%v'", i, string(p.text[i:]))
+		defer func() {
+			log.Printf("exit atomicOps %v '%v'", i, string(p.text[i:]))
+		}()
 	}
 	if i >= len(p.text) {
 		return i, nil, nil
@@ -182,6 +191,9 @@ func (p *parser) atomicOps(i int) (int, AST, *ParseError) {
 func (p *parser) atomicOp(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter atomicOp %v '%v'", i, string(p.text[i:]))
+		defer func() {
+			log.Printf("exit atomicOp %v '%v'", i, string(p.text[i:]))
+		}()
 	}
 	i, A, err := p.atomic(i)
 	if DEBUG {
@@ -190,18 +202,47 @@ func (p *parser) atomicOp(i int) (int, AST, *ParseError) {
 	if err != nil {
 		return i, nil, err
 	}
-	i, O, err := p.op(i)
+	i, OPS, err := p.ops(i)
 	if err != nil && err.Reason == "No Operator" {
 		return i, A, nil
 	} else if err != nil {
 		return i, A, err
 	}
-	return i, NewApplyOp(O, A), err
+	var N AST = A
+	for _, OP := range OPS {
+		N = NewApplyOp(OP, N)
+	}
+	return i, N, err
+}
+
+func (p *parser) ops(i int) (int, []AST, *ParseError) {
+	if DEBUG {
+		log.Printf("enter ops %v '%v'", i, string(p.text[i:]))
+		defer func() {
+			log.Printf("exit ops %v '%v'", i, string(p.text[i:]))
+		}()
+	}
+	ops := make([]AST, 0, 2)
+	var err *ParseError
+	var O AST
+	for {
+		i, O, err = p.op(i)
+		if err != nil {
+			if len(ops) <= 0 {
+				return i, nil, err
+			}
+			return i, ops, nil
+		}
+		ops = append(ops, O)
+	}
 }
 
 func (p *parser) op(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter op %v '%v'", i, string(p.text[i:]))
+		defer func() {
+			log.Printf("exit op %v '%v'", i, string(p.text[i:]))
+		}()
 	}
 	i, err := p.match(i, '+')
 	if err == nil {
@@ -221,6 +262,9 @@ func (p *parser) op(i int) (int, AST, *ParseError) {
 func (p *parser) atomic(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter atomic %v '%v'", i, string(p.text[i:]))
+		defer func() {
+			log.Printf("exit atomic %v '%v'", i, string(p.text[i:]))
+		}()
 	}
 	i, ast, errChar := p.char(i)
 	if errChar == nil {
@@ -239,21 +283,24 @@ func (p *parser) atomic(i int) (int, AST, *ParseError) {
 	return i, nil, Errorf(p.text, i, "Expected group or char").Chain(errChar).Chain(errGroup)
 }
 
-func (p *parser) group(j int) (int, AST, *ParseError) {
+func (p *parser) group(i int) (int, AST, *ParseError) {
 	if DEBUG {
-		log.Printf("enter group %v '%v'", j, string(p.text[j:]))
+		log.Printf("enter group %v '%v'", i, string(p.text[i:]))
+		defer func() {
+			log.Printf("exit group %v '%v'", i, string(p.text[i:]))
+		}()
 	}
-	i, err := p.match(j, '(')
+	i, err := p.match(i, '(')
 	if err != nil {
 		return i, nil, err
 	}
 	i, A, err := p.alternation(i)
 	if err != nil {
-		return j, nil, err
+		return i, nil, err
 	}
 	i, err = p.match(i, ')')
 	if err != nil {
-		return j, nil, err
+		return i, nil, err
 	}
 	return i, A, nil
 }
@@ -261,6 +308,9 @@ func (p *parser) group(j int) (int, AST, *ParseError) {
 func (p *parser) concat(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter concat %v '%v'", i, string(p.text[i:]))
+		defer func() {
+			log.Printf("exit concat %v '%v'", i, string(p.text[i:]))
+		}()
 	}
 	if i >= len(p.text) {
 		return i, nil, nil
@@ -279,6 +329,9 @@ func (p *parser) concat(i int) (int, AST, *ParseError) {
 func (p *parser) char(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter char %v '%v'", i, string(p.text[i:]))
+		defer func() {
+			log.Printf("exit char %v '%v'", i, string(p.text[i:]))
+		}()
 	}
 	i, C, errCHAR := p.CHAR(i)
 	if errCHAR == nil {
@@ -296,6 +349,9 @@ func (p *parser) char(i int) (int, AST, *ParseError) {
 func (p *parser) CHAR(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter CHAR %v '%v'", i, string(p.text[i:]))
+		defer func() {
+			log.Printf("exit CHAR %v '%v'", i, string(p.text[i:]))
+		}()
 	}
 	if i >= len(p.text) {
 		return i, nil, Errorf(p.text, i, "out of input %v, %v", i, string(p.text))

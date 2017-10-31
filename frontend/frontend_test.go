@@ -139,6 +139,20 @@ func TestParseConcatAltPlus(x *testing.T) {
 	t_match(program, "AAABBCCD", t)
 }
 
+func TestChainedOps(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("A?+*B*?+C+*?(x+?)**"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed := "(Match (Concat (* (+ (? (Character A)))), (+ (? (* (Character B)))), (? (* (+ (Character C)))), (* (* (? (+ (Character x)))))))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+}
+
 func TestParseConcatAltStar(x *testing.T) {
 	t := (*test.T)(x)
 	ast, err := Parse([]byte("(A|[C-G])*(X|Y?)"))
