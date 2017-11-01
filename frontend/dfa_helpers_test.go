@@ -41,7 +41,7 @@ func TestFollowExample(x *testing.T) {
 		{4},
 		{},
 	}
-	positions, follow := Follow(ast)
+	positions, _, follow := Follow(ast)
 	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
 	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
 }
@@ -58,7 +58,26 @@ func TestFollowStar(x *testing.T) {
 		{0, 1},
 		{},
 	}
-	positions, follow := Follow(ast)
+	positions, _, follow := Follow(ast)
+	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
+	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
+}
+
+func TestFollowStar2(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("ab*c"))
+	t.AssertNil(err)
+	expectedPos := []AST{
+		NewCharacter('a'),
+		NewCharacter('b'),
+		NewCharacter('c'),
+	}
+	expectedFollows := [][]int{
+		{1, 2},
+		{1, 2},
+		{},
+	}
+	positions, _, follow := Follow(ast)
 	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
 	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
 }
@@ -75,7 +94,7 @@ func TestFollowPlus(x *testing.T) {
 		{0, 1},
 		{},
 	}
-	positions, follow := Follow(ast)
+	positions, _, follow := Follow(ast)
 	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
 	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
 }
@@ -94,7 +113,7 @@ func TestFollowMaybe(x *testing.T) {
 		{2},
 		{},
 	}
-	positions, follow := Follow(ast)
+	positions, _, follow := Follow(ast)
 	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
 	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
 }
@@ -123,7 +142,7 @@ func TestFollowMaybes(x *testing.T) {
 		{7},
 		{},
 	}
-	positions, follow := Follow(ast)
+	positions, _, follow := Follow(ast)
 	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
 	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
 }
@@ -144,7 +163,7 @@ func TestFollowMaybeStar(x *testing.T) {
 		{0, 3},
 		{},
 	}
-	positions, follow := Follow(ast)
+	positions, _, follow := Follow(ast)
 	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
 	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
 }
@@ -165,7 +184,7 @@ func TestFollowMaybeNested(x *testing.T) {
 		{3},
 		{},
 	}
-	positions, follow := Follow(ast)
+	positions, _, follow := Follow(ast)
 	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
 	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
 }
@@ -186,7 +205,7 @@ func TestFollowMaybeNested2(x *testing.T) {
 		{3},
 		{},
 	}
-	positions, follow := Follow(ast)
+	positions, _, follow := Follow(ast)
 	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
 	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
 }
@@ -211,7 +230,7 @@ func TestFollowMaybeNested3(x *testing.T) {
 		{5, 1, 3, 4},
 		{},
 	}
-	positions, follow := Follow(ast)
+	positions, _, follow := Follow(ast)
 	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
 	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
 }
@@ -244,7 +263,7 @@ func TestFollowMaybeNested4(x *testing.T) {
 		{6},
 		{},
 	}
-	positions, follow := Follow(ast)
+	positions, _, follow := Follow(ast)
 	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
 	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
 }
@@ -265,7 +284,7 @@ func TestFollowNested(x *testing.T) {
 		{2, 3},
 		{2, 3},
 	}
-	positions, follow := Follow(ast)
+	positions, _, follow := Follow(ast)
 	t.Assert(listEquals(expectedPos, positions), "follow \n\tproduced: %v\n\texpected: %v", positions, expectedPos)
 	t.Assert(followEquals(follow, expectedFollows), "follow \n\tproduced: %v\n\texpected: %v", follow, expectedFollows)
 }
@@ -476,6 +495,29 @@ func TestLast_concat(x *testing.T) {
 		NewCharacter('d'),
 		NewCharacter('c'),
 		NewCharacter('b'),
+	}
+	t.Assert(listEquals(last, ast.Last()), "last \n\tproduced: %v\n\texpected: %v", ast.Last(), last)
+}
+
+func TestLast_concat2(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("abc*d*e*"))
+	t.AssertNil(err)
+	last := []AST{
+		NewCharacter('e'),
+		NewCharacter('d'),
+		NewCharacter('c'),
+		NewCharacter('b'),
+	}
+	t.Assert(listEquals(last, ast.Last()), "last \n\tproduced: %v\n\texpected: %v", ast.Last(), last)
+}
+
+func TestLast_concat3(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("abc+d+e+"))
+	t.AssertNil(err)
+	last := []AST{
+		NewCharacter('e'),
 	}
 	t.Assert(listEquals(last, ast.Last()), "last \n\tproduced: %v\n\texpected: %v", ast.Last(), last)
 }

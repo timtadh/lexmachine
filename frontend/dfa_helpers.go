@@ -5,7 +5,7 @@ import (
 	"unsafe"
 )
 
-func Follow(root AST) (positions []AST, follow []map[int]bool) {
+func Follow(root AST) (positions []AST, first []int, follow []map[int]bool) {
 	positions = findPositions(root)
 	posmap := make(map[uintptr]int)
 	ptr := func(p AST) uintptr {
@@ -30,21 +30,23 @@ func Follow(root AST) (positions []AST, follow []map[int]bool) {
 	}
 	stack := make([]AST, 0, 10)
 	stack = append(stack, root)
-	maybes := make([]*Maybe, 0, 10)
 	for len(stack) > 0 {
 		var cur AST
 		stack, cur = stack[:len(stack)-1], stack[len(stack)-1]
 		stack = append(stack, cur.Children()...)
 		switch n := cur.(type) {
-		case *Maybe:
-			maybes = append(maybes, n)
 		case *Concat:
 			for x := 0; x < len(n.Items)-1; x++ {
 				a := n.Items[x]
-				b := n.Items[x+1]
 				bFirst := make([]int, 0, 10)
-				for _, p := range b.First() {
-					bFirst = append(bFirst, pos(p))
+				for y := x + 1; y < len(n.Items); y++ {
+					b := n.Items[y]
+					for _, p := range b.First() {
+						bFirst = append(bFirst, pos(p))
+					}
+					if !b.MatchesEmptyString() {
+						break
+					}
 				}
 				for _, q := range a.Last() {
 					i := pos(q)
@@ -67,48 +69,13 @@ func Follow(root AST) (positions []AST, follow []map[int]bool) {
 		}
 	}
 
-	subtree := func(n AST) map[int]bool {
-		tree := make(map[int]bool)
-		for _, p := range findPositions(n) {
-			tree[pos(p)] = true
-		}
-		return tree
+	astFirst := root.First()
+	first = make([]int, 0, len(astFirst))
+	for _, p := range astFirst {
+		first = append(first, pos(p))
 	}
 
-	// Fix the maybes
-	// everything with First(Maybe) in their FOLLOW
-	//   (not including things in First(Maybe) in the Maybe subtree).
-	// also has FOLLOW(Last(Maybe)) in their FOLLOW
-	//   (not including things in Follow(Last(Maybe)) in the Maybe subtree).
-	for i := 0; i < len(maybes); i++ {
-		maybe := maybes[i]
-		tree := subtree(maybe)
-		for _, first := range maybe.First() {
-			f := pos(first)
-			// fmt.Printf("first%v = %v %v\n", maybe, first, f)
-			for j, row := range follow {
-				if _, has := tree[j]; has {
-					// ignore things inside the Maybe subtree
-					continue
-				}
-				if _, has := row[f]; has {
-					for _, last := range maybe.Last() {
-						l := pos(last)
-						for following := range follow[l] {
-							if _, has := tree[following]; has {
-								// ignore things inside the Maybe subtree
-								continue
-							}
-							follow[j][following] = true
-							// fmt.Printf("%v -> %v\n", j, following)
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return positions, follow
+	return positions, first, follow
 }
 
 func findPositions(ast AST) []AST {
