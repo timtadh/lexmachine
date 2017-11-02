@@ -140,6 +140,8 @@ func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
 	var token interface{}
 	for token == nil {
 		tc, match, err, scan := s.scan(s.TC)
+		// allow to skip the error
+		s.TC = tc
 		if scan == nil {
 			return nil, nil, true
 		} else if err != nil {
@@ -149,7 +151,6 @@ func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
 		}
 		s.scan = scan
 		s.pTC = s.TC
-		s.TC = tc
 		s.sLine = match.StartLine
 		s.sColumn = match.StartColumn
 		s.eLine = match.EndLine
