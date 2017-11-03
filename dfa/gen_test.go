@@ -11,7 +11,7 @@ import (
 func TestGen(x *testing.T) {
 	t := (*test.T)(x)
 	// ast, err := frontend.Parse([]byte("(([a-z]+[A-Z])*[0-9])?wizard"))
-	ast, err := frontend.Parse([]byte("(a|b)?[xyz]+c"))
+	ast, err := frontend.Parse([]byte("(a|b)+[xyz]*"))
 	if err != nil {
 		t.Fatal(err)
 	}

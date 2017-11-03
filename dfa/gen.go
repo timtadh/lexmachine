@@ -26,8 +26,9 @@ type DFA struct {
 // 8. then write a machine based on the DFA
 
 func Generate(ast frontend.AST) *DFA {
-	ast = frontend.DesugarRanges(ast)
-	positions, first, follow := frontend.Follow(ast)
+	lAst := Label(frontend.DesugarRanges(ast))
+	positions := lAst.Positions
+	first, follow := lAst.Follow()
 	trans := hashtable.NewLinearHash()
 	states := set.NewSortedSet(len(positions))
 	unmarked := linked.New()
@@ -46,7 +47,7 @@ func Generate(ast frontend.AST) *DFA {
 		posBySymbol := make(map[byte][]int)
 		for pos, next := s.Items()(); next != nil; pos, next = next() {
 			p := int(pos.(types.Int))
-			char := positions[p].(*frontend.Character).Char
+			char := lAst.Order[positions[p]].(*frontend.Character).Char
 			posBySymbol[char] = append(posBySymbol[char], p)
 		}
 		for symbol, positions := range posBySymbol {
