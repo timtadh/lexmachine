@@ -71,6 +71,7 @@ type LabeledAST struct {
 	Kids      [][]int        // a lookup table of location for each of the nodes children
 	Positions []int          // a labeling of all the position nodes (Character/Range) in the AST.
 	posmap    map[int]int    // maps an order index to a pos index.
+	Matches   []int          // the index (in Positions) of all the EOS nodes
 	nullable  []bool
 	first     [][]int
 	last      [][]int
@@ -88,6 +89,7 @@ func Label(ast frontend.AST) *LabeledAST {
 	order := make([]frontend.AST, 0, 10)
 	children := make([][]int, 0, 10)
 	positions := make([]int, 0, 10)
+	matches := make([]int, 0, 10)
 	posmap := make(map[int]int)
 	stack := make([]entry, 0, 10)
 	stack = append(stack, entry{ast, 0, []int{}})
@@ -111,6 +113,11 @@ func Label(ast frontend.AST) *LabeledAST {
 		case *frontend.Character, *frontend.Range:
 			posmap[oid] = len(positions)
 			positions = append(positions, oid)
+		case *frontend.EOS:
+			pid := len(positions)
+			posmap[oid] = pid
+			positions = append(positions, oid)
+			matches = append(matches, pid)
 		}
 	}
 	return &LabeledAST{
@@ -119,6 +126,7 @@ func Label(ast frontend.AST) *LabeledAST {
 		Kids:      children,
 		Positions: positions,
 		posmap:    posmap,
+		Matches:   matches,
 	}
 }
 
@@ -137,6 +145,8 @@ func (a *LabeledAST) MatchesEmptyString() (nullable []bool) {
 	nullable = make([]bool, 0, len(a.Order))
 	for i, node := range a.Order {
 		switch n := node.(type) {
+		case *frontend.EOS:
+			nullable = append(nullable, true)
 		case *frontend.Character:
 			nullable = append(nullable, false)
 		case *frontend.Range:
@@ -175,6 +185,8 @@ func (a *LabeledAST) First() (first [][]int) {
 	first = make([][]int, 0, len(a.Order))
 	for i, node := range a.Order {
 		switch n := node.(type) {
+		case *frontend.EOS:
+			first = append(first, []int{a.pos(i)})
 		case *frontend.Character:
 			first = append(first, []int{a.pos(i)})
 		case *frontend.Range:
@@ -216,6 +228,8 @@ func (a *LabeledAST) Last() (last [][]int) {
 	last = make([][]int, 0, len(a.Order))
 	for i, node := range a.Order {
 		switch n := node.(type) {
+		case *frontend.EOS:
+			last = append(last, []int{a.pos(i)})
 		case *frontend.Character:
 			last = append(last, []int{a.pos(i)})
 		case *frontend.Range:

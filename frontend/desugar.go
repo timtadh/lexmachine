@@ -25,6 +25,8 @@ func DesugarRanges(ast AST) AST {
 		return &Concat{Items: items}
 	case *Character:
 		return n
+	case *EOS:
+		return n
 	case *Range:
 		chars := make([]*Character, 0, n.To-n.From+1)
 		for i := n.From; i <= n.To; i++ {

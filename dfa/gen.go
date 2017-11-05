@@ -12,7 +12,9 @@ import (
 )
 
 type DFA struct {
-	Trans [][256]int
+	Start     int
+	Accepting [][]int
+	Trans     [][256]int
 }
 
 // TODO
@@ -31,6 +33,7 @@ func Generate(ast frontend.AST) *DFA {
 	first, follow := lAst.Follow()
 	trans := hashtable.NewLinearHash()
 	states := set.NewSortedSet(len(positions))
+	accepting := set.NewSortedSet(len(positions))
 	unmarked := linked.New()
 	start := makeDState(first)
 	trans.Put(start, make(map[byte]*set.SortedSet))
@@ -44,31 +47,42 @@ func Generate(ast frontend.AST) *DFA {
 			panic(err)
 		}
 		s := x.(*set.SortedSet)
-		posBySymbol := make(map[byte][]int)
+		posBySymbol := make(map[int][]int)
 		for pos, next := s.Items()(); next != nil; pos, next = next() {
 			p := int(pos.(types.Int))
-			char := lAst.Order[positions[p]].(*frontend.Character).Char
-			posBySymbol[char] = append(posBySymbol[char], p)
+			var sym int
+			if char, is := lAst.Order[positions[p]].(*frontend.Character); is {
+				sym = int(char.Char)
+			} else if _, is := lAst.Order[positions[p]].(*frontend.EOS); is {
+				sym = -1
+			}
+			posBySymbol[sym] = append(posBySymbol[sym], p)
 		}
 		for symbol, positions := range posBySymbol {
-			// pFollow will be a new DState
-			pFollow := set.NewSortedSet(len(positions) * 2)
-			for _, p := range positions {
-				for next := range follow[p] {
-					pFollow.Add(types.Int(next))
+			if symbol == -1 {
+				accepting.Add(s)
+			} else if 0 <= symbol && symbol < 256 {
+				// pFollow will be a new DState
+				pFollow := set.NewSortedSet(len(positions) * 2)
+				for _, p := range positions {
+					for next := range follow[p] {
+						pFollow.Add(types.Int(next))
+					}
 				}
+				if !states.Has(pFollow) {
+					trans.Put(pFollow, make(map[byte]*set.SortedSet))
+					states.Add(pFollow)
+					unmarked.Push(pFollow)
+				}
+				x, err := trans.Get(s)
+				if err != nil {
+					panic(err)
+				}
+				t := x.(map[byte]*set.SortedSet)
+				t[byte(symbol)] = pFollow
+			} else {
+				panic("symbol outside of range")
 			}
-			if !states.Has(pFollow) {
-				trans.Put(pFollow, make(map[byte]*set.SortedSet))
-				states.Add(pFollow)
-				unmarked.Push(pFollow)
-			}
-			x, err := trans.Get(s)
-			if err != nil {
-				panic(err)
-			}
-			t := x.(map[byte]*set.SortedSet)
-			t[symbol] = pFollow
 		}
 	}
 
@@ -84,8 +98,10 @@ func Generate(ast frontend.AST) *DFA {
 	}
 
 	dfa := &DFA{
+		Start: idx(start) + 1,
 		Trans: make([][256]int, trans.Size()+1),
 	}
+	fmt.Println("accepting", accepting)
 	for k, v, next := trans.Iterate()(); next != nil; k, v, next = next() {
 		from := k.(*set.SortedSet)
 		toMap := v.(map[byte]*set.SortedSet)
@@ -110,6 +126,7 @@ func makeDState(positions []int) *set.SortedSet {
 
 func (dfa *DFA) String() string {
 	lines := make([]string, 0, len(dfa.Trans))
+	lines = append(lines, fmt.Sprintf("start: %d", dfa.Start))
 	for i, row := range dfa.Trans {
 		t := make([]string, 0, 10)
 		for sym, to := range row {

@@ -14,7 +14,7 @@ func TestParse(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (Alternation (Concat (Character a), (Character b), (? (Alternation (Character a), (Alternation (Character c), (Character d)))), (Character w), (* (Character e)), (Character \\), (Character [), (Character .), (Range 0 255), (+ (Range 102 115))), (Concat (Character q), (Character y), (Character x))))"
+	parsed := "(Match (Concat (Alternation (Concat (Character a), (Character b), (? (Alternation (Character a), (Alternation (Character c), (Character d)))), (Character w), (* (Character e)), (Character \\), (Character [), (Character .), (Range 0 255), (+ (Range 102 115))), (Concat (Character q), (Character y), (Character x))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -58,7 +58,7 @@ func TestParseConcatAlts(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (Alternation (Character A), (Concat (Alternation (Character C), (Alternation (Character D), (Character E))), (Alternation (Character F), (Character G)), (Alternation (Character H), (Character I)), (Character B))))"
+	parsed := "(Match (Concat (Alternation (Character A), (Concat (Alternation (Character C), (Alternation (Character D), (Character E))), (Alternation (Character F), (Character G)), (Alternation (Character H), (Character I)), (Character B))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -90,7 +90,7 @@ func TestParseConcatAltMaybes(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (Concat (Alternation (? (? (Character A))), (Alternation (Character B), (Character C))), (Alternation (Character D), (? (Character E)))))"
+	parsed := "(Match (Concat (Concat (Alternation (? (? (Character A))), (Alternation (Character B), (Character C))), (Alternation (Character D), (? (Character E)))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -121,7 +121,7 @@ func TestParseConcatAltPlus(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (Concat (+ (Alternation (Character A), (Alternation (Character B), (Character C)))), (Alternation (Character D), (? (Character E)))))"
+	parsed := "(Match (Concat (Concat (+ (Alternation (Character A), (Alternation (Character B), (Character C)))), (Alternation (Character D), (? (Character E)))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -143,7 +143,7 @@ func TestParseAltOps(x *testing.T) {
 	t := (*test.T)(x)
 	ast, err := Parse([]byte("a|b"))
 	t.AssertNil(err)
-	parsed := "(Match (Alternation (Character a), (Character b)))"
+	parsed := "(Match (Concat (Alternation (Character a), (Character b)), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -152,7 +152,7 @@ func TestParseAltOps(x *testing.T) {
 
 	ast, err = Parse([]byte("a?|b"))
 	t.AssertNil(err)
-	parsed = "(Match (Alternation (? (Character a)), (Character b)))"
+	parsed = "(Match (Concat (Alternation (? (Character a)), (Character b)), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -161,7 +161,7 @@ func TestParseAltOps(x *testing.T) {
 
 	ast, err = Parse([]byte("a|b?"))
 	t.AssertNil(err)
-	parsed = "(Match (Alternation (Character a), (? (Character b))))"
+	parsed = "(Match (Concat (Alternation (Character a), (? (Character b))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -170,7 +170,7 @@ func TestParseAltOps(x *testing.T) {
 
 	ast, err = Parse([]byte("a?|b?"))
 	t.AssertNil(err)
-	parsed = "(Match (Alternation (? (Character a)), (? (Character b))))"
+	parsed = "(Match (Concat (Alternation (? (Character a)), (? (Character b))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -184,7 +184,7 @@ func TestChainedOps(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (Concat (* (+ (? (Character A)))), (+ (? (* (Character B)))), (? (* (+ (Character C)))), (* (* (? (+ (Character x)))))))"
+	parsed := "(Match (Concat (Concat (* (+ (? (Character A)))), (+ (? (* (Character B)))), (? (* (+ (Character C)))), (* (* (? (+ (Character x)))))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -198,7 +198,7 @@ func TestParseConcatAltStar(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (Concat (* (Alternation (Character A), (Range 67 71))), (Alternation (Character X), (? (Character Y)))))"
+	parsed := "(Match (Concat (Concat (* (Alternation (Character A), (Range 67 71))), (Alternation (Character X), (? (Character Y)))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -226,7 +226,7 @@ func TestIdent(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (Concat (Alternation (Range 97 122), (Range 65 90)), (* (Alternation (Range 97 122), (Alternation (Range 65 90), (Alternation (Range 48 57), (Character _)))))))"
+	parsed := "(Match (Concat (Concat (Alternation (Range 97 122), (Range 65 90)), (* (Alternation (Range 97 122), (Alternation (Range 65 90), (Alternation (Range 48 57), (Character _)))))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -250,7 +250,7 @@ func TestDigitClass(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (+ (Range 48 57)))"
+	parsed := "(Match (Concat (+ (Range 48 57)), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -271,7 +271,7 @@ func TestNotDigitClass(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (+ (Alternation (Range 0 47), (Range 58 255))))"
+	parsed := "(Match (Concat (+ (Alternation (Range 0 47), (Range 58 255))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -292,7 +292,7 @@ func TestSpaceClass(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (+ (Alternation (Range 9 10), (Alternation (Range 12 13), (Range 32 32)))))"
+	parsed := "(Match (Concat (+ (Alternation (Range 9 10), (Alternation (Range 12 13), (Range 32 32)))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -313,7 +313,7 @@ func TestNoSpaceClass(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (+ (Alternation (Range 0 8), (Alternation (Range 11 11), (Alternation (Range 14 31), (Range 33 255))))))"
+	parsed := "(Match (Concat (+ (Alternation (Range 0 8), (Alternation (Range 11 11), (Alternation (Range 14 31), (Range 33 255))))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -334,7 +334,7 @@ func TestWordClass(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (+ (Alternation (Range 48 57), (Alternation (Range 65 90), (Alternation (Range 95 95), (Range 97 122))))))"
+	parsed := "(Match (Concat (+ (Alternation (Range 48 57), (Alternation (Range 65 90), (Alternation (Range 95 95), (Range 97 122))))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -356,7 +356,7 @@ func TestNoWordClass(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (+ (Alternation (Range 0 47), (Alternation (Range 58 64), (Alternation (Range 91 94), (Alternation (Range 96 96), (Range 123 255)))))))"
+	parsed := "(Match (Concat (+ (Alternation (Range 0 47), (Alternation (Range 58 64), (Alternation (Range 91 94), (Alternation (Range 96 96), (Range 123 255)))))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -377,7 +377,7 @@ func TestMultiRangeClasses(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (Concat (Alternation (Range 65 90), (Range 97 122)), (* (Alternation (Range 48 57), (Alternation (Range 65 90), (Alternation (Range 95 95), (Range 97 122)))))))"
+	parsed := "(Match (Concat (Concat (Alternation (Range 65 90), (Range 97 122)), (* (Alternation (Range 48 57), (Alternation (Range 65 90), (Alternation (Range 95 95), (Range 97 122)))))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -401,7 +401,7 @@ func TestMultiRangeClasses2(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (Concat (+ (Alternation (Range 46 47), (Alternation (Range 58 58), (Alternation (Range 65 90), (Alternation (Range 95 95), (Range 97 122)))))), (Character :), (Character \"), (+ (Range 0 255)), (Character \")))"
+	parsed := "(Match (Concat (Concat (+ (Alternation (Range 46 47), (Alternation (Range 58 58), (Alternation (Range 65 90), (Alternation (Range 95 95), (Range 97 122)))))), (Character :), (Character \"), (+ (Range 0 255)), (Character \")), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -422,7 +422,7 @@ func TestInvertRangeClasses1(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (+ (Alternation (Range 0 96), (Range 101 255))))"
+	parsed := "(Match (Concat (+ (Alternation (Range 0 96), (Range 101 255))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -449,7 +449,7 @@ func TestInvertRangeClasses2(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (+ (Alternation (Range 0 96), (Range 101 255))))"
+	parsed := "(Match (Concat (+ (Alternation (Range 0 96), (Range 101 255))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -476,7 +476,7 @@ func TestInvertRangeClasses3(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (+ (Alternation (Range 0 96), (Alternation (Range 101 119), (Range 123 255)))))"
+	parsed := "(Match (Concat (+ (Alternation (Range 0 96), (Alternation (Range 101 119), (Range 123 255)))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)
@@ -506,7 +506,7 @@ func TestLineComment(x *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsed := "(Match (Concat (Character /), (Character /), (* (Alternation (Range 0 9), (Range 11 255)))))"
+	parsed := "(Match (Concat (Concat (Character /), (Character /), (* (Alternation (Range 0 9), (Range 11 255)))), (EOS)))"
 	if ast.String() != parsed {
 		t.Log(ast.String())
 		t.Log(parsed)

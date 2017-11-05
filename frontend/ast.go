@@ -27,6 +27,18 @@ func (a *AltMatch) String() string {
 	return fmt.Sprintf("(AltMatch %v, %v)", a.A, a.B)
 }
 
+// EOS end of string
+type EOS struct{}
+
+func (e *EOS) Children() []AST {
+	return []AST{}
+}
+
+// String humanizes the subtree
+func (e *EOS) String() string {
+	return "(EOS)"
+}
+
 // Match the tree AST finalizes the matching
 type Match struct {
 	AST
@@ -164,7 +176,12 @@ func NewAltMatch(a, b AST) AST {
 
 // NewMatch create a Match
 func NewMatch(ast AST) AST {
-	return &Match{ast}
+	return &Match{NewConcat(ast, NewEOS())}
+}
+
+// NewEOS creates a EOS
+func NewEOS() AST {
+	return &EOS{}
 }
 
 // NewAlternation creates an Alternation

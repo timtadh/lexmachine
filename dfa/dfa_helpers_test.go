@@ -64,8 +64,10 @@ func testFollow(x *testing.T, regex string, expectedPos []frontend.AST, expected
 	lAst := Label(ast)
 	positions := lAst.Positions
 	_, follow := lAst.Follow()
-	t.Assert(listEquals(expectedPos, astListOrder(lAst, positions)), "%v follow \n\tproduced: %v\n\texpected: %v", regex, positions, expectedPos)
-	t.Assert(followEquals(follow, expectedFollows), "%v follow \n\tproduced: %v\n\texpected: %v", regex, follow, expectedFollows)
+	t.Assert(listEquals(expectedPos, astListOrder(lAst, positions)),
+		"%v follow \n\tproduced: %v\n\texpected: %v", regex, astListOrder(lAst, positions), expectedPos)
+	t.Assert(followEquals(follow, expectedFollows),
+		"%v follow \n\tproduced: %v\n\texpected: %v", regex, follow, expectedFollows)
 }
 
 func TestFollowSimple(x *testing.T) {
@@ -74,9 +76,11 @@ func TestFollowSimple(x *testing.T) {
 		"a*",
 		[]frontend.AST{
 			frontend.NewCharacter('a'),
+			frontend.NewEOS(),
 		},
 		[][]int{
-			{0},
+			{0, 1},
+			{},
 		})
 }
 
@@ -90,12 +94,14 @@ func TestFollowExample(x *testing.T) {
 			frontend.NewCharacter('x'),
 			frontend.NewCharacter('y'),
 			frontend.NewCharacter('z'),
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{0, 1, 2},
 			{0, 1, 2},
 			{3},
 			{4},
+			{5},
 			{},
 		})
 }
@@ -107,9 +113,11 @@ func TestFollowStar(x *testing.T) {
 		[]frontend.AST{
 			frontend.NewCharacter('a'),
 			frontend.NewCharacter('b'),
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{0, 1},
+			{2},
 			{},
 		})
 }
@@ -122,10 +130,12 @@ func TestFollowStar2(x *testing.T) {
 			frontend.NewCharacter('a'),
 			frontend.NewCharacter('b'),
 			frontend.NewCharacter('c'),
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{1, 2},
 			{1, 2},
+			{3},
 			{},
 		})
 }
@@ -137,9 +147,11 @@ func TestFollowPlus(x *testing.T) {
 		[]frontend.AST{
 			frontend.NewCharacter('a'),
 			frontend.NewCharacter('b'),
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{0, 1},
+			{2},
 			{},
 		})
 }
@@ -152,10 +164,12 @@ func TestFollowMaybe(x *testing.T) {
 			frontend.NewCharacter('a'),
 			frontend.NewCharacter('b'),
 			frontend.NewCharacter('c'),
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{1, 2},
 			{2},
+			{3},
 			{},
 		})
 }
@@ -173,6 +187,7 @@ func TestFollowMaybes(x *testing.T) {
 			frontend.NewCharacter('f'), // 5
 			frontend.NewCharacter('g'), // 6
 			frontend.NewCharacter('h'), // 7
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{1, 2, 3, 4, 5, 6, 7},
@@ -182,6 +197,7 @@ func TestFollowMaybes(x *testing.T) {
 			{6, 7},
 			{6, 7},
 			{7},
+			{8},
 			{},
 		})
 }
@@ -195,11 +211,13 @@ func TestFollowMaybeStar(x *testing.T) {
 			frontend.NewCharacter('b'), // 1
 			frontend.NewCharacter('c'), // 2
 			frontend.NewCharacter('d'), // 3
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{0, 1, 2, 3},
 			{0, 2, 3},
 			{0, 3},
+			{4},
 			{},
 		})
 }
@@ -213,11 +231,13 @@ func TestFollowMaybeNested(x *testing.T) {
 			frontend.NewCharacter('b'), // 1
 			frontend.NewCharacter('c'), // 2
 			frontend.NewCharacter('d'), // 3
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{1, 2, 3},
 			{2},
 			{3},
+			{4},
 			{},
 		})
 }
@@ -231,11 +251,13 @@ func TestFollowMaybeNested2(x *testing.T) {
 			frontend.NewCharacter('b'), // 1
 			frontend.NewCharacter('c'), // 2
 			frontend.NewCharacter('d'), // 3
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{1, 3},
 			{2, 3},
 			{3},
+			{4},
 			{},
 		})
 }
@@ -251,6 +273,7 @@ func TestFollowMaybeNested3(x *testing.T) {
 			frontend.NewCharacter('x'), // 3
 			frontend.NewCharacter('y'), // 4
 			frontend.NewCharacter('z'), // 5
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{1, 3, 4, 5},
@@ -258,6 +281,7 @@ func TestFollowMaybeNested3(x *testing.T) {
 			{5, 1, 3, 4},
 			{5, 1, 3, 4},
 			{5, 1, 3, 4},
+			{6},
 			{},
 		})
 }
@@ -274,6 +298,7 @@ func TestFollowMaybeNested4(x *testing.T) {
 			frontend.NewCharacter('e'), // 4
 			frontend.NewCharacter('f'), // 5
 			frontend.NewCharacter('g'), // 6
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{1, 3, 4, 6},
@@ -282,6 +307,7 @@ func TestFollowMaybeNested4(x *testing.T) {
 			{4},
 			{5, 6},
 			{6},
+			{7},
 			{},
 		})
 }
@@ -295,12 +321,14 @@ func TestFollowNested(x *testing.T) {
 			frontend.NewCharacter('b'), // 1
 			frontend.NewCharacter('c'), // 2
 			frontend.NewCharacter('d'), // 3
+			frontend.NewEOS(),
 		},
 		[][]int{
 			{0, 1},
-			{0, 2, 3},
-			{2, 3},
-			{2, 3},
+			{0, 2, 3, 4},
+			{2, 3, 4},
+			{2, 3, 4},
+			{},
 		})
 }
 
@@ -416,6 +444,7 @@ func TestLast_char(x *testing.T) {
 	t.AssertNil(err)
 	lAst := Label(ast)
 	last := []frontend.AST{
+		frontend.NewEOS(),
 		frontend.NewCharacter('a'),
 	}
 	t.Assert(listEquals(last, astList(lAst, lAst.Last()[len(lAst.Order)-1])), "last \n\tproduced: %v, \n\texpected: %v", astList(lAst, lAst.Last()[len(lAst.Order)-1]), last)
@@ -438,6 +467,7 @@ func TestLast_range(x *testing.T) {
 	t.AssertNil(err)
 	lAst := Label(ast)
 	last := []frontend.AST{
+		frontend.NewEOS(),
 		frontend.NewRange('a', 'z'),
 	}
 	t.Assert(listEquals(last, astList(lAst, lAst.Last()[len(lAst.Order)-1])), "last \n\tproduced: %v, \n\texpected: %v", astList(lAst, lAst.Last()[len(lAst.Order)-1]), last)
@@ -450,6 +480,7 @@ func TestFirst_ops(x *testing.T) {
 	lAst := Label(ast)
 	first := []frontend.AST{
 		frontend.NewCharacter('a'),
+		frontend.NewEOS(),
 	}
 	t.Assert(listEquals(first, astList(lAst, lAst.First()[len(lAst.Order)-1])), "first \n\tproduced: %v, \n\texpected: %v", astList(lAst, lAst.First()[len(lAst.Order)-1]), first)
 }
@@ -460,6 +491,7 @@ func TestLast_ops(x *testing.T) {
 	t.AssertNil(err)
 	lAst := Label(ast)
 	last := []frontend.AST{
+		frontend.NewEOS(),
 		frontend.NewCharacter('a'),
 	}
 	t.Assert(listEquals(last, astList(lAst, lAst.Last()[len(lAst.Order)-1])), "last \n\tproduced: %v, \n\texpected: %v", astList(lAst, lAst.Last()[len(lAst.Order)-1]), last)
@@ -483,6 +515,7 @@ func TestLast_alt(x *testing.T) {
 	t.AssertNil(err)
 	lAst := Label(ast)
 	last := []frontend.AST{
+		frontend.NewEOS(),
 		frontend.NewCharacter('a'),
 		frontend.NewCharacter('b'),
 	}
@@ -509,6 +542,7 @@ func TestLast_concat(x *testing.T) {
 	t.AssertNil(err)
 	lAst := Label(ast)
 	last := []frontend.AST{
+		frontend.NewEOS(),
 		frontend.NewCharacter('e'),
 		frontend.NewCharacter('d'),
 		frontend.NewCharacter('c'),
@@ -523,6 +557,7 @@ func TestLast_concat2(x *testing.T) {
 	t.AssertNil(err)
 	lAst := Label(ast)
 	last := []frontend.AST{
+		frontend.NewEOS(),
 		frontend.NewCharacter('e'),
 		frontend.NewCharacter('d'),
 		frontend.NewCharacter('c'),
@@ -537,6 +572,7 @@ func TestLast_concat3(x *testing.T) {
 	t.AssertNil(err)
 	lAst := Label(ast)
 	last := []frontend.AST{
+		frontend.NewEOS(),
 		frontend.NewCharacter('e'),
 	}
 	t.Assert(listEquals(last, astList(lAst, lAst.Last()[len(lAst.Order)-1])), "last \n\tproduced: %v, \n\texpected: %v", astList(lAst, lAst.Last()[len(lAst.Order)-1]), last)

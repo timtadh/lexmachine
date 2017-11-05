@@ -79,3 +79,11 @@ func (r *Range) Equals(o AST) bool {
 		return false
 	}
 }
+
+func (e *EOS) Equals(o AST) bool {
+	if x, is := o.(*EOS); is {
+		return *e == *x
+	} else {
+		return false
+	}
+}
