@@ -43,8 +43,24 @@ func TestGenExample(x *testing.T) {
 }
 
 func TestGenMin(x *testing.T) {
+	// these regexes were tested/designed to give non-minimal dfas
 	t := (*test.T)(x)
-	testGen(t, "(a[a-c]*|a+)d", "b", -1)
+	testGen(t, "(a[a-c]*|a+)d", "abd", 0)
+	testGen(t, "(a[a-c]*|a+)d", "accad", 0)
+	testGen(t, "(a[a-c]*|a+)d", "a", -1)
+	testGen(t, "(a[a-c]*|a+)d", "ad", 0)
+	testGen(t, "(a[a-c]*|a+)d", "d", -1)
+
+	ast := mustParse(`((((x[x-z]*c|x+c)+|x[u-z]*c|x+c)+|a[a-c]*c|a+c)+|a[a-c]*c|a+c)d`)
+	testGenMatch(t, ast, "xcd", 0)
+	testGenMatch(t, ast, "xzcd", 0)
+	testGenMatch(t, ast, "acd", 0)
+	testGenMatch(t, ast, "abcd", 0)
+	testGenMatch(t, ast, "aaaacd", 0)
+	testGenMatch(t, ast, "xxcd", 0)
+	testGenMatch(t, ast, "xxzzzzcd", 0)
+	testGenMatch(t, ast, "xxzuzzcd", 0)
+	testGenMatch(t, ast, "xxzuzzaacd", -1)
 }
 
 func TestGenCharacter(x *testing.T) {
