@@ -6,6 +6,7 @@ import (
 )
 
 import (
+	dfapkg "github.com/timtadh/lexmachine/dfa"
 	"github.com/timtadh/lexmachine/frontend"
 	"github.com/timtadh/lexmachine/inst"
 	"github.com/timtadh/lexmachine/machines"
@@ -79,6 +80,7 @@ type Lexer struct {
 	patterns []*pattern
 	matches  map[int]int "match_idx -> pat_idx"
 	program  inst.InstSlice
+	dfa      *dfapkg.DFA
 }
 
 // Scanner tokenizes a byte string based on the patterns provided to the lexer
@@ -196,7 +198,7 @@ func (l *Lexer) Scanner(text []byte) (*Scanner, error) {
 
 	return &Scanner{
 		lexer: l,
-		scan:  machines.LexerEngine(l.program, textCopy),
+		scan:  machines.DFALexerEngine(l.dfa.Start, l.dfa.Error, l.dfa.Trans, l.dfa.Accepting, textCopy),
 		Text:  textCopy,
 		TC:    0,
 	}, nil
@@ -238,21 +240,31 @@ func (l *Lexer) Compile() error {
 		lexast = frontend.NewAltMatch(asts[i], lexast)
 	}
 
+	dfa := dfapkg.Generate(lexast)
+	l.dfa = dfa
+	l.matches = make(map[int]int)
+	ast := 0
+	for mid := range dfa.Matches {
+		l.matches[mid] = ast
+		ast++
+	}
+
 	program, err := frontend.Generate(lexast)
 	if err != nil {
 		return err
 	}
 
 	l.program = program
-	l.matches = make(map[int]int)
 
-	ast := 0
-	for i, instruction := range l.program {
-		if instruction.Op == inst.MATCH {
-			l.matches[i] = ast
-			ast++
+	/*
+		ast := 0
+		for i, instruction := range l.program {
+			if instruction.Op == inst.MATCH {
+				l.matches[i] = ast
+				ast++
+			}
 		}
-	}
+	*/
 
 	if len(asts) != ast {
 		panic("len(asts) != ast")

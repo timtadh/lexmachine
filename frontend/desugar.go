@@ -29,8 +29,8 @@ func DesugarRanges(ast AST) AST {
 		return n
 	case *Range:
 		chars := make([]*Character, 0, n.To-n.From+1)
-		for i := n.From; i <= n.To; i++ {
-			chars = append(chars, NewCharacter(i))
+		for i := int(n.From); i <= int(n.To); i++ {
+			chars = append(chars, NewCharacter(byte(i)))
 		}
 		if len(chars) <= 0 {
 			panic(fmt.Errorf("Empty, unmatchable range: %v", n))

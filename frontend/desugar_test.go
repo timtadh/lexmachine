@@ -3,6 +3,23 @@ package frontend
 import "testing"
 import "github.com/timtadh/data-structures/test"
 
+func TestDesugarRanges_any(x *testing.T) {
+	t := (*test.T)(x)
+	ast, err := Parse([]byte("."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(ast.String())
+	parsed := "(Match (Concat (Range 0 255), (EOS)))"
+	if ast.String() != parsed {
+		t.Log(ast.String())
+		t.Log(parsed)
+		t.Error("Did not parse correctly")
+	}
+	// asserts this doesn't infinte loop
+	DesugarRanges(ast)
+}
+
 func TestDesugarRanges(x *testing.T) {
 	t := (*test.T)(x)
 	ast, err := Parse([]byte("(([a-z]+[A-Z])*[0-9])?wizard"))
