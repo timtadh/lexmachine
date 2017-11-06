@@ -42,6 +42,11 @@ func TestGenExample(x *testing.T) {
 	testGenMatch(t, ast, "abcAaAaZ0wizar", -1)
 }
 
+func TestGenMin(x *testing.T) {
+	t := (*test.T)(x)
+	testGen(t, "(a[a-c]*|a+)d", "b", -1)
+}
+
 func TestGenCharacter(x *testing.T) {
 	t := (*test.T)(x)
 	testGen(t, "a", "a", 0)

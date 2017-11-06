@@ -13,16 +13,13 @@ import (
 )
 
 type DFA struct {
+	minimal   bool
 	Start     int                   // the starting state
 	Error     int                   // the error state (should be 0)
 	Accepting machines.DFAAccepting // state-idx to match-id
 	Trans     machines.DFATrans     // the transition matrix
 	Matches   [][]int               // match-id to list of accepting states
 }
-
-// TODO
-// 7. implement DFA minimization
-// 8. then write a machine based on the DFA
 
 func Generate(root frontend.AST) *DFA {
 	ast := Label(root)
@@ -130,7 +127,7 @@ func Generate(root frontend.AST) *DFA {
 		}
 	}
 
-	return dfa
+	return dfa.minimize()
 }
 
 func makeDState(positions []int) *set.SortedSet {
@@ -178,4 +175,149 @@ func (dfa *DFA) match(text string) int {
 	} else {
 		return mid
 	}
+}
+
+func (dfa *DFA) minimize() *DFA {
+	if dfa.minimal {
+		return dfa
+	}
+
+	accepting := set.NewSortedSet(10)
+	partition := set.NewSortedSet(10)
+	for _, states := range dfa.Matches {
+		group := set.NewSortedSet(10)
+		for _, state := range states {
+			group.Add(types.Int(state))
+			accepting.Add(types.Int(state))
+		}
+		partition.Add(group)
+	}
+	nonAccepting := set.NewSortedSet(10)
+	for state := range dfa.Trans {
+		if state == dfa.Error {
+			errGroup := set.NewSortedSet(1)
+			errGroup.Add(types.Int(state))
+			partition.Add(errGroup)
+		} else {
+			if !accepting.Has(types.Int(state)) {
+				nonAccepting.Add(types.Int(state))
+			}
+		}
+	}
+	if nonAccepting.Size() > 0 {
+		partition.Add(nonAccepting)
+	}
+
+	replace := func(i int, replacement *set.SortedSet) int {
+		err := partition.Remove(i)
+		if err != nil {
+			panic(err)
+		}
+		err = partition.Extend(replacement.Items())
+		if err != nil {
+			panic(err)
+		}
+		first, err := replacement.Get(0)
+		if err != nil {
+			panic(err)
+		}
+		i, has, err := partition.Find(first)
+		if err != nil {
+			panic(err)
+		} else if !has {
+			panic(fmt.Errorf("Could not find %v in %v", first, partition))
+		}
+		return i
+	}
+
+	findGroup := func(s int) int {
+		i := 0
+		for v, next := partition.Items()(); next != nil; v, next = next() {
+			g := v.(*set.SortedSet)
+			if g.Has(types.Int(s)) {
+				return i
+			}
+			i++
+		}
+		return -1
+	}
+
+	equivalent := func(s int, ec *set.SortedSet) bool {
+		x, err := ec.Get(0)
+		if err != nil {
+			panic(err)
+		}
+		t := int(x.(types.Int))
+		for sym := 0; sym < 256; sym++ {
+			a := findGroup(dfa.Trans[s][sym])
+			b := findGroup(dfa.Trans[t][sym])
+			if a != b || a < 0 || b < 0 {
+				return false
+			}
+		}
+		return true
+	}
+
+	for i := 0; i < partition.Size(); i++ {
+		g, err := partition.Get(i)
+		if err != nil {
+			panic(err)
+		}
+		group := g.(*set.SortedSet)
+		subgroups := set.NewSortedSet(10)
+		for s, next := group.Items()(); next != nil; s, next = next() {
+			state := int(s.(types.Int))
+			found := false
+			for ec, next := subgroups.Items()(); next != nil; ec, next = next() {
+				eqClass := ec.(*set.SortedSet)
+				if equivalent(state, eqClass) {
+					eqClass.Add(types.Int(state))
+					found = true
+					break
+				}
+			}
+			if !found {
+				ec := set.NewSortedSet(10)
+				ec.Add(s)
+				subgroups.Add(ec)
+			}
+		}
+		if subgroups.Size() > 1 {
+			i = replace(i, subgroups) - 1
+		}
+	}
+
+	// if the dfa is already minimal return it
+	if partition.Size() == len(dfa.Trans) {
+		dfa.minimal = true
+		return dfa
+	}
+
+	newdfa := &DFA{
+		Error:     findGroup(dfa.Error),
+		Start:     findGroup(dfa.Start),
+		Matches:   make([][]int, len(dfa.Matches)),
+		Accepting: make(machines.DFAAccepting),
+		Trans:     make(machines.DFATrans, partition.Size()),
+	}
+	for gid := 0; gid < partition.Size(); gid++ {
+		g, err := partition.Get(gid)
+		if err != nil {
+			panic(err)
+		}
+		group := g.(*set.SortedSet)
+		r, err := group.Get(0)
+		if err != nil {
+			panic(err)
+		}
+		rep := int(r.(types.Int))
+		for sym := 0; sym < 256; sym++ {
+			newdfa.Trans[gid][sym] = findGroup(dfa.Trans[rep][sym])
+		}
+		if matchID, has := dfa.Accepting[rep]; has {
+			newdfa.Matches[matchID] = append(newdfa.Matches[matchID], gid)
+			newdfa.Accepting[gid] = matchID
+		}
+	}
+	return newdfa
 }
