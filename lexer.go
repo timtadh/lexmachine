@@ -77,10 +77,11 @@ type pattern struct {
 // match (with their callbacks) by using the Add function. Finally, construct a
 // scanner with Scanner to tokenizing a byte string.
 type Lexer struct {
-	patterns []*pattern
-	matches  map[int]int "match_idx -> pat_idx"
-	program  inst.InstSlice
-	dfa      *dfapkg.DFA
+	patterns   []*pattern
+	nfaMatches map[int]int "match_idx -> pat_idx"
+	dfaMatches map[int]int "match_idx -> pat_idx"
+	program    inst.InstSlice
+	dfa        *dfapkg.DFA
 }
 
 // Scanner tokenizes a byte string based on the patterns provided to the lexer
@@ -106,6 +107,7 @@ type Lexer struct {
 //
 type Scanner struct {
 	lexer   *Lexer
+	matches map[int]int
 	scan    machines.Scanner
 	Text    []byte
 	TC      int
@@ -157,7 +159,7 @@ func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
 		s.eLine = match.EndLine
 		s.eColumn = match.EndColumn
 
-		pattern := s.lexer.patterns[s.lexer.matches[match.PC]]
+		pattern := s.lexer.patterns[s.matches[match.PC]]
 		token, err = pattern.action(s, match)
 		if err != nil {
 			return nil, err, false
@@ -187,21 +189,36 @@ func NewLexer() *Lexer {
 
 // Scanner creates a scanner for a particular byte string from the lexer.
 func (l *Lexer) Scanner(text []byte) (*Scanner, error) {
-	err := l.Compile()
-	if err != nil {
-		return nil, err
+	if l.program == nil && l.dfa == nil {
+		err := l.Compile()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// prevent the user from modifying the text under scan
 	textCopy := make([]byte, len(text))
 	copy(textCopy, text)
 
-	return &Scanner{
-		lexer: l,
-		scan:  machines.DFALexerEngine(l.dfa.Start, l.dfa.Error, l.dfa.Trans, l.dfa.Accepting, textCopy),
-		Text:  textCopy,
-		TC:    0,
-	}, nil
+	var s *Scanner
+	if l.dfa != nil {
+		s = &Scanner{
+			lexer:   l,
+			matches: l.dfaMatches,
+			scan:    machines.DFALexerEngine(l.dfa.Start, l.dfa.Error, l.dfa.Trans, l.dfa.Accepting, textCopy),
+			Text:    textCopy,
+			TC:      0,
+		}
+	} else {
+		s = &Scanner{
+			lexer:   l,
+			matches: l.nfaMatches,
+			scan:    machines.LexerEngine(l.program, textCopy),
+			Text:    textCopy,
+			TC:      0,
+		}
+	}
+	return s, nil
 }
 
 // Add pattern to match on. When a match occurs during scanning the action
@@ -214,61 +231,79 @@ func (l *Lexer) Add(regex []byte, action Action) {
 	l.patterns = append(l.patterns, &pattern{regex, action})
 }
 
-// Compile the supplied patterns. You don't need to call this method (it is
-// called automatically by Scanner). However, you may want to call this method
-// if you construct a lexer once and then use it many times as it will
-// precompile the lexing program.
+// Compile the supplied patterns to an NFA (default). You don't need to call
+// this method (it is called automatically by Scanner). However, you may want to
+// call this method if you construct a lexer once and then use it many times as
+// it will precompile the lexing program.
 func (l *Lexer) Compile() error {
+	return l.CompileNFA()
+}
+
+func (l *Lexer) assembleAST() (frontend.AST, error) {
+	asts := make([]frontend.AST, 0, len(l.patterns))
+	for _, p := range l.patterns {
+		ast, err := frontend.Parse(p.regex)
+		if err != nil {
+			return nil, err
+		}
+		asts = append(asts, ast)
+	}
+	lexast := asts[len(asts)-1]
+	for i := len(asts) - 2; i >= 0; i-- {
+		lexast = frontend.NewAltMatch(asts[i], lexast)
+	}
+	return lexast, nil
+}
+
+// CompileNFA compiles an NFA explicitly. If no DFA has been created (which is
+// only created explicitly) this will be used by Scanners when they are created.
+func (l *Lexer) CompileNFA() error {
 	if len(l.patterns) == 0 {
 		return fmt.Errorf("No patterns added")
 	}
 	if l.program != nil {
 		return nil
 	}
-
-	asts := make([]frontend.AST, 0, len(l.patterns))
-	for _, p := range l.patterns {
-		ast, err := frontend.Parse(p.regex)
-		if err != nil {
-			return err
-		}
-		asts = append(asts, ast)
+	lexast, err := l.assembleAST()
+	if err != nil {
+		return err
 	}
-
-	lexast := asts[len(asts)-1]
-	for i := len(asts) - 2; i >= 0; i-- {
-		lexast = frontend.NewAltMatch(asts[i], lexast)
-	}
-
-	dfa := dfapkg.Generate(lexast)
-	l.dfa = dfa
-	l.matches = make(map[int]int)
-	ast := 0
-	for mid := range dfa.Matches {
-		l.matches[mid] = ast
-		ast++
-	}
-
 	program, err := frontend.Generate(lexast)
 	if err != nil {
 		return err
 	}
 
 	l.program = program
+	l.nfaMatches = make(map[int]int)
 
-	/*
-		ast := 0
-		for i, instruction := range l.program {
-			if instruction.Op == inst.MATCH {
-				l.matches[i] = ast
-				ast++
-			}
+	ast := 0
+	for i, instruction := range l.program {
+		if instruction.Op == inst.MATCH {
+			l.nfaMatches[i] = ast
+			ast++
 		}
-	*/
-
-	if len(asts) != ast {
-		panic("len(asts) != ast")
 	}
+	return nil
+}
 
+// CompileDFA compiles an DFA explicitly. This will be used by Scanners when
+// they are created.
+func (l *Lexer) CompileDFA() error {
+	if len(l.patterns) == 0 {
+		return fmt.Errorf("No patterns added")
+	}
+	if l.dfa != nil {
+		return nil
+	}
+	lexast, err := l.assembleAST()
+	if err != nil {
+		return err
+	}
+	dfa := dfapkg.Generate(lexast)
+	l.dfa = dfa
+	l.dfaMatches = make(map[int]int)
+	for mid := range dfa.Matches {
+		l.dfaMatches[mid] = mid
+	}
 	return nil
 }

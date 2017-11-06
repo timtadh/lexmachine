@@ -82,7 +82,7 @@ func TestSimple(t *testing.T) {
 		},
 	)
 
-	scanner, err := lexer.Scanner([]byte(`
+	text := []byte(`
 		name = 10
 		print name
 		print fred
@@ -92,10 +92,7 @@ func TestSimple(t *testing.T) {
 		 ooiwje \*/ weoi
 		 weoi*/ printname = 13
 		print printname
-	`))
-	if err != nil {
-		t.Error(err)
-	}
+	`)
 
 	expected := []*Token{
 		{NAME, "name", []byte("name"), 3, 2, 3, 2, 6},
@@ -115,9 +112,46 @@ func TestSimple(t *testing.T) {
 		{NAME, "printname", []byte("printname"), 135, 10, 9, 10, 17},
 	}
 
-	t.Log(lexer.program.Serialize())
+	// first do the test with the NFA
+	err := lexer.CompileNFA()
+	if err != nil {
+		t.Error(err)
+	}
+
+	scanner, err := lexer.Scanner(text)
+	if err != nil {
+		t.Error(err)
+		t.Log(lexer.program.Serialize())
+	}
 
 	i := 0
+	for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
+		if err != nil {
+			t.Fatal(err)
+		}
+		tok := tk.(*Token)
+		if !tok.Equals(expected[i]) {
+			t.Errorf("got wrong token got %v, expected %v", tok, expected[i])
+		}
+		i++
+	}
+
+	lexer.program = nil
+	lexer.nfaMatches = nil
+
+	// first do the test with the DFA
+	err = lexer.CompileDFA()
+	if err != nil {
+		t.Error(err)
+	}
+
+	scanner, err = lexer.Scanner(text)
+	if err != nil {
+		t.Error(err)
+		t.Log(lexer.program.Serialize())
+	}
+
+	i = 0
 	for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
 		if err != nil {
 			t.Fatal(err)

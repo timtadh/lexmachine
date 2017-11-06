@@ -21,12 +21,6 @@ type DFA struct {
 }
 
 // TODO
-// 1. have Follow find the set of accepting positions grouped by match
-// 2. add start states to DFA
-// 3. add accepting states (grouped by match) to DFA
-// 4. move dfa helpers here
-// 5. make Follow more efficient
-// 6. precompute first, last, and epsilon instead of using recursive defs
 // 7. implement DFA minimization
 // 8. then write a machine based on the DFA
 

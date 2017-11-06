@@ -3,18 +3,37 @@ package machines
 type DFATrans [][256]int
 type DFAAccepting map[int]int
 
+type lineCol struct {
+	line, col int
+}
+
+// Compute the line and column of a particular index inside of a byte slice.
+func mapLineCols(text []byte) []lineCol {
+	m := make([]lineCol, len(text))
+	line := 1
+	col := 0
+	for i := 0; i < len(text); i++ {
+		if text[i] == '\n' {
+			col = 0
+			line++
+		} else {
+			col++
+		}
+		m[i] = lineCol{line: line, col: col}
+	}
+	return m
+}
+
 // DFALexerEngine does the actual tokenization of the byte slice text using the
 // DFA state machine. If the lexing process fails the Scanner will return
 // an UnconsumedInput error.
 func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAccepting, text []byte) Scanner {
+	lineCols := mapLineCols(text)
 	done := false
 	matchID := -1
 	matchTC := -1
 
 	prevTC := 0
-	line := 1
-	col := 1
-
 	var scan Scanner
 	scan = func(tc int) (int, *Match, error, Scanner) {
 		if done && tc == len(text) {
@@ -38,15 +57,15 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 			}
 			state = trans[state][text[tc]]
 			if state == errorState && matchID > -1 {
-				line, col = computeLineCol(text, prevTC, startTC, line, col)
-				eLine, eCol := computeLineCol(text, startTC, matchTC-1, line, col)
+				startLC := lineCols[startTC]
+				endLC := lineCols[matchTC-1]
 				match := &Match{
 					PC:          matchID,
 					TC:          startTC,
-					StartLine:   line,
-					StartColumn: col,
-					EndLine:     eLine,
-					EndColumn:   eCol,
+					StartLine:   startLC.line,
+					StartColumn: startLC.col,
+					EndLine:     endLC.line,
+					EndColumn:   endLC.col,
 					Bytes:       text[startTC:matchTC],
 				}
 				prevTC = startTC
@@ -67,15 +86,15 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 			if matchTC == -1 {
 				matchTC = 0
 			}
-			sline, scol := computeLineCol(text, 0, startTC, 1, 1)
-			fline, fcol := computeLineCol(text, 0, tc, 1, 1)
+			startLC := lineCols[startTC]
+			endLC := lineCols[tc]
 			err := &UnconsumedInput{
 				StartTC:     startTC,
 				FailTC:      tc,
-				StartLine:   sline,
-				StartColumn: scol,
-				FailLine:    fline,
-				FailColumn:  fcol,
+				StartLine:   startLC.line,
+				StartColumn: startLC.col,
+				FailLine:    endLC.line,
+				FailColumn:  endLC.col,
 				Text:        text,
 			}
 			return tc, nil, err, scan
