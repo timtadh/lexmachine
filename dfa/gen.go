@@ -190,7 +190,9 @@ func (dfa *DFA) minimize() *DFA {
 			group.Add(types.Int(state))
 			accepting.Add(types.Int(state))
 		}
-		partition.Add(group)
+		if group.Size() > 0 {
+			partition.Add(group)
+		}
 	}
 	nonAccepting := set.NewSortedSet(10)
 	for state := range dfa.Trans {
@@ -239,7 +241,7 @@ func (dfa *DFA) minimize() *DFA {
 			}
 			i++
 		}
-		return -1
+		panic(fmt.Errorf("Could not find a group for %v in %v", s, partition))
 	}
 
 	equivalent := func(s int, ec *set.SortedSet) bool {
