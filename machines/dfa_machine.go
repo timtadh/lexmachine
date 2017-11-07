@@ -50,7 +50,7 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 			matchTC = tc
 		}
 		state := startState
-		for ; tc < len(text); tc++ {
+		for ; tc < len(text) && state != errorState; tc++ {
 			if match, has := accepting[state]; has {
 				matchID = match
 				matchTC = tc
@@ -71,8 +71,6 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 				prevTC = startTC
 				matchID = -1
 				return tc, match, nil, scan
-			} else if state == errorState {
-				break
 			}
 		}
 		if match, has := accepting[state]; has {

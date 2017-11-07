@@ -162,7 +162,7 @@ func TestSimple(t *testing.T) {
 	}
 }
 
-func TestExample(x *testing.T) {
+func TestPartialLexer(x *testing.T) {
 	t := (*test.T)(x)
 	text := `
 	require 'config.php';
@@ -208,17 +208,24 @@ func TestExample(x *testing.T) {
 	lexer.Add([]byte("function"), getToken(TokenTypeFunction))
 	lexer.Add([]byte("class"), getToken(TokenTypeClass))
 	lexer.Add([]byte(">=|<=|=|>|<|\\|\\||&&"), getToken(TokenTypeOperator))
-	t.AssertNil(lexer.CompileDFA())
-	scanner, err := lexer.Scanner([]byte(text))
-	t.AssertNil(err)
-	for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
-		if ui, is := err.(*machines.UnconsumedInput); ui != nil && is {
-			scanner.TC = ui.FailTC + 1
-			t.Log(ui)
-		} else if err != nil {
-			t.Fatal(err)
-		} else {
-			fmt.Println(tk)
+	scan := func(lexer *Lexer) {
+		scanner, err := lexer.Scanner([]byte(text))
+		t.AssertNil(err)
+		for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
+			if ui, is := err.(*machines.UnconsumedInput); ui != nil && is {
+				scanner.TC = ui.FailTC
+				t.Log(ui)
+			} else if err != nil {
+				t.Fatal(err)
+			} else {
+				t.Log(tk)
+			}
 		}
 	}
+	t.AssertNil(lexer.CompileNFA())
+	scan(lexer)
+	lexer.program = nil
+	lexer.nfaMatches = nil
+	t.AssertNil(lexer.CompileDFA())
+	scan(lexer)
 }
