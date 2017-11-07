@@ -9,7 +9,8 @@ import (
 	"github.com/timtadh/lexmachine/machines"
 )
 
-func TestSimple(t *testing.T) {
+func TestSimple(x *testing.T) {
+	t := (*test.T)(x)
 	const (
 		NAME = iota
 		EQUALS
@@ -110,56 +111,35 @@ func TestSimple(t *testing.T) {
 		{NAME, "printname", []byte("printname"), 135, 10, 9, 10, 17},
 	}
 
-	// first do the test with the NFA
-	err := lexer.CompileNFA()
-	if err != nil {
-		t.Error(err)
-	}
-
-	scanner, err := lexer.Scanner(text)
-	if err != nil {
-		t.Error(err)
-		t.Log(lexer.program.Serialize())
-	}
-
-	i := 0
-	for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
+	scan := func(lexer *Lexer) {
+		scanner, err := lexer.Scanner(text)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
+			t.Log(lexer.program.Serialize())
 		}
-		tok := tk.(*Token)
-		if !tok.Equals(expected[i]) {
-			t.Errorf("got wrong token got %v, expected %v", tok, expected[i])
+
+		i := 0
+		for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
+			if err != nil {
+				t.Fatal(err)
+			}
+			tok := tk.(*Token)
+			if !tok.Equals(expected[i]) {
+				t.Errorf("got wrong token got %v, expected %v", tok, expected[i])
+			}
+			i++
 		}
-		i++
 	}
 
+	// first do the test with the NFA
+	t.AssertNil(lexer.CompileNFA())
+	scan(lexer)
+
+	// then do the test with the DFA
 	lexer.program = nil
 	lexer.nfaMatches = nil
-
-	// first do the test with the DFA
-	err = lexer.CompileDFA()
-	if err != nil {
-		t.Error(err)
-	}
-
-	scanner, err = lexer.Scanner(text)
-	if err != nil {
-		t.Error(err)
-		t.Log(lexer.program.Serialize())
-	}
-
-	i = 0
-	for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
-		if err != nil {
-			t.Fatal(err)
-		}
-		tok := tk.(*Token)
-		if !tok.Equals(expected[i]) {
-			t.Errorf("got wrong token got %v, expected %v", tok, expected[i])
-		}
-		i++
-	}
+	t.AssertNil(lexer.CompileDFA())
+	scan(lexer)
 }
 
 func TestPartialLexer(x *testing.T) {
@@ -201,130 +181,37 @@ func TestPartialLexer(x *testing.T) {
 		tokmap[name] = id
 	}
 	expected := []int{
-		tokmap["INCLUDE"],
-		tokmap["STRING"],
-		tokmap["CLASS"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["FUNC"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["COMMENT"],
-		tokmap["IDENT"],
-		tokmap["FUNC"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["COMMENT"],
-		tokmap["IDENT"],
-		tokmap["FUNC"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["STRING"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["COMMENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["COMMENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["OP"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
-		tokmap["IDENT"],
+		tokmap["INCLUDE"], tokmap["STRING"], tokmap["CLASS"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["OP"], tokmap["IDENT"],
+		tokmap["FUNC"], tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["COMMENT"], tokmap["IDENT"], tokmap["FUNC"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["OP"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["OP"], tokmap["IDENT"],
+		tokmap["OP"], tokmap["IDENT"], tokmap["OP"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["OP"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["COMMENT"], tokmap["IDENT"], tokmap["FUNC"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"], tokmap["OP"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"], tokmap["OP"],
+		tokmap["IDENT"], tokmap["OP"], tokmap["IDENT"], tokmap["OP"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["OP"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"], tokmap["STRING"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["OP"], tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["COMMENT"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["OP"], tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["OP"], tokmap["IDENT"], tokmap["OP"], tokmap["IDENT"],
+		tokmap["OP"], tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"], tokmap["OP"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"], tokmap["COMMENT"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["OP"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["OP"], tokmap["IDENT"], tokmap["OP"],
+		tokmap["IDENT"], tokmap["OP"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"],
+		tokmap["OP"], tokmap["IDENT"], tokmap["IDENT"], tokmap["IDENT"],
 	}
 
 	getToken := func(tokenType int) Action {
@@ -347,10 +234,11 @@ func TestPartialLexer(x *testing.T) {
 		for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
 			if ui, is := err.(*machines.UnconsumedInput); ui != nil && is {
 				scanner.TC = ui.FailTC
-				// t.Log(ui)
+				t.Log(ui)
 			} else if err != nil {
 				t.Fatal(err)
 			} else {
+				t.Logf("%v: %v", tokens[tk.(*Token).Type], tk)
 				t.Assert(tk.(*Token).Type == expected[i],
 					"expected %v got %v: %v", tokens[expected[i]], tokens[tk.(*Token).Type], tk)
 				i++
