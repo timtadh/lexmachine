@@ -71,6 +71,8 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 				prevTC = startTC
 				matchID = -1
 				return tc, match, nil, scan
+			} else if state == errorState {
+				break
 			}
 		}
 		if match, has := accepting[state]; has {
@@ -87,10 +89,16 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 				matchTC = 0
 			}
 			startLC := lineCols[startTC]
-			endLC := lineCols[tc]
+			etc := tc
+			var endLC lineCol
+			if etc >= len(lineCols) {
+				endLC = lineCols[len(lineCols)-1]
+			} else {
+				endLC = lineCols[etc]
+			}
 			err := &UnconsumedInput{
 				StartTC:     startTC,
-				FailTC:      tc,
+				FailTC:      etc,
 				StartLine:   startLC.line,
 				StartColumn: startLC.col,
 				FailLine:    endLC.line,

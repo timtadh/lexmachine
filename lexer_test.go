@@ -1,13 +1,11 @@
 package lexmachine
 
-import "testing"
-
 import (
 	"fmt"
 	"strconv"
-)
+	"testing"
 
-import (
+	"github.com/timtadh/data-structures/test"
 	"github.com/timtadh/lexmachine/machines"
 )
 
@@ -161,5 +159,66 @@ func TestSimple(t *testing.T) {
 			t.Errorf("got wrong token got %v, expected %v", tok, expected[i])
 		}
 		i++
+	}
+}
+
+func TestExample(x *testing.T) {
+	t := (*test.T)(x)
+	text := `
+	require 'config.php';
+	class Jikan
+	{
+		public $response = [];
+		public function __construct() {
+			return $this;
+		}
+		/*
+		 * Anime
+		 */
+		public function Anime(String $id = null, Array $extend = []) {
+			$this->response = (array) (new Get\Anime($id, $extend))->response;
+			return $this;
+		}
+		/*
+		 * Manga
+		 */
+		public function Manga(String $id = null, Array $extend = []) {
+			$this->response = (array) (new Get\Manga($id, $extend))->response;
+			return $this;
+		}`
+	const (
+		TokenTypeInclude int = iota
+		TokenTypeComment
+		TokenTypeString
+		TokenTypeIdentifier
+		TokenTypeFunction
+		TokenTypeClass
+		TokenTypeOperator
+	)
+	getToken := func(tokenType int) Action {
+		return func(s *Scanner, m *machines.Match) (interface{}, error) {
+			return s.Token(tokenType, string(m.Bytes), m), nil
+		}
+	}
+	var lexer *Lexer = NewLexer()
+	lexer.Add([]byte("import|require"), getToken(TokenTypeInclude))
+	lexer.Add([]byte("\"[^\\\"]*\"|'[^']*'|`[^`]*`"), getToken(TokenTypeString))
+	lexer.Add([]byte("//[^\n]*\n?|/\\*([^*]|\r|\n|(\\*+([^*/]|\r|\n)))*\\*+/"), getToken(TokenTypeComment))
+	lexer.Add([]byte("[A-Za-z$][A-Za-z0-9$]+"), getToken(TokenTypeIdentifier))
+	lexer.Add([]byte("function"), getToken(TokenTypeFunction))
+	lexer.Add([]byte("class"), getToken(TokenTypeClass))
+	lexer.Add([]byte(">=|<=|=|>|<|\\|\\||&&"), getToken(TokenTypeOperator))
+	t.AssertNil(lexer.CompileDFA())
+	scanner, err := lexer.Scanner([]byte(text))
+	t.AssertNil(err)
+	for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
+		if ui, is := err.(*machines.UnconsumedInput); ui != nil && is {
+			scanner.TC = ui.FailTC + 1
+			t.Log(ui)
+		} else if err != nil {
+			t.Fatal(err)
+		} else {
+			fmt.Println(tk)
+		}
 	}
 }

@@ -30,9 +30,15 @@ func (u *UnconsumedInput) Error() string {
 		}
 		return b
 	}
+	max := func(a, b int) int {
+		if a > b {
+			return a
+		}
+		return b
+	}
 	stc := min(u.StartTC, len(u.Text)-1)
-	etc := min(u.FailTC, len(u.Text))
-	return fmt.Sprintf("Lexer error: could not match text starting at %v:%v failing at %v:%v.\n\tunmatched text: '%v'",
+	etc := min(max(u.StartTC+1, u.FailTC), len(u.Text))
+	return fmt.Sprintf("Lexer error: could not match text starting at %v:%v failing at %v:%v.\n\tunmatched text: %q",
 		u.StartLine, u.StartColumn,
 		u.FailLine, u.FailColumn,
 		string(u.Text[stc:etc]),
