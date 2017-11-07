@@ -186,39 +186,174 @@ func TestPartialLexer(x *testing.T) {
 			$this->response = (array) (new Get\Manga($id, $extend))->response;
 			return $this;
 		}`
-	const (
-		TokenTypeInclude int = iota
-		TokenTypeComment
-		TokenTypeString
-		TokenTypeIdentifier
-		TokenTypeFunction
-		TokenTypeClass
-		TokenTypeOperator
-	)
+	tokens := []string{
+		"ERROR",
+		"INCLUDE",
+		"COMMENT",
+		"STRING",
+		"IDENT",
+		"FUNC",
+		"CLASS",
+		"OP",
+	}
+	tokmap := make(map[string]int)
+	for id, name := range tokens {
+		tokmap[name] = id
+	}
+	expected := []int{
+		tokmap["INCLUDE"],
+		tokmap["STRING"],
+		tokmap["CLASS"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["FUNC"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["COMMENT"],
+		tokmap["IDENT"],
+		tokmap["FUNC"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["COMMENT"],
+		tokmap["IDENT"],
+		tokmap["FUNC"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["STRING"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["COMMENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["COMMENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["OP"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+		tokmap["IDENT"],
+	}
+
 	getToken := func(tokenType int) Action {
 		return func(s *Scanner, m *machines.Match) (interface{}, error) {
 			return s.Token(tokenType, string(m.Bytes), m), nil
 		}
 	}
 	var lexer *Lexer = NewLexer()
-	lexer.Add([]byte("import|require"), getToken(TokenTypeInclude))
-	lexer.Add([]byte("\"[^\\\"]*\"|'[^']*'|`[^`]*`"), getToken(TokenTypeString))
-	lexer.Add([]byte("//[^\n]*\n?|/\\*([^*]|\r|\n|(\\*+([^*/]|\r|\n)))*\\*+/"), getToken(TokenTypeComment))
-	lexer.Add([]byte("[A-Za-z$][A-Za-z0-9$]+"), getToken(TokenTypeIdentifier))
-	lexer.Add([]byte("function"), getToken(TokenTypeFunction))
-	lexer.Add([]byte("class"), getToken(TokenTypeClass))
-	lexer.Add([]byte(">=|<=|=|>|<|\\|\\||&&"), getToken(TokenTypeOperator))
+	lexer.Add([]byte("import|require"), getToken(tokmap["INCLUDE"]))
+	lexer.Add([]byte("function"), getToken(tokmap["FUNC"]))
+	lexer.Add([]byte("class"), getToken(tokmap["CLASS"]))
+	lexer.Add([]byte("\"[^\\\"]*\"|'[^']*'|`[^`]*`"), getToken(tokmap["STRING"]))
+	lexer.Add([]byte("//[^\n]*\n?|/\\*([^*]|\r|\n|(\\*+([^*/]|\r|\n)))*\\*+/"), getToken(tokmap["COMMENT"]))
+	lexer.Add([]byte("[A-Za-z$][A-Za-z0-9$]+"), getToken(tokmap["IDENT"]))
+	lexer.Add([]byte(">=|<=|=|>|<|\\|\\||&&"), getToken(tokmap["OP"]))
 	scan := func(lexer *Lexer) {
 		scanner, err := lexer.Scanner([]byte(text))
 		t.AssertNil(err)
+		i := 0
 		for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
 			if ui, is := err.(*machines.UnconsumedInput); ui != nil && is {
 				scanner.TC = ui.FailTC
-				t.Log(ui)
+				// t.Log(ui)
 			} else if err != nil {
 				t.Fatal(err)
 			} else {
-				t.Log(tk)
+				t.Assert(tk.(*Token).Type == expected[i],
+					"expected %v got %v: %v", tokens[expected[i]], tokens[tk.(*Token).Type], tk)
+				i++
 			}
 		}
 	}
