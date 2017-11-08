@@ -296,6 +296,7 @@ func (dfa *DFA) minimize() *DFA {
 	}
 
 	newdfa := &DFA{
+		minimal:   true,
 		Error:     findGroup(dfa.Error),
 		Start:     findGroup(dfa.Start),
 		Matches:   make([][]int, len(dfa.Matches)),
