@@ -33,9 +33,9 @@ analysis system for Go.
 2.  A abstract syntax tree (AST) for regular expressions.
 3.  A backpatching code generator which compiles the AST to (NFA) machine code.
 4.  Both DFA (Deterministic Finite Automata) and a NFA (Non-deterministic Finite
-    Automata) simulation based lexical analysis engine. Lexical analysis engines
-    work in a slightly different way from a normal regular expression engine as
-    they tokenize a stream rather than matching one string.
+    Automata) simulation based lexical analysis engines. Lexical analysis
+    engines work in a slightly different way from a normal regular expression
+    engine as they tokenize a stream rather than matching one string.
 5.  Match objects which include start and end column and line numbers of the
     lexemes as well as their associate token name.
 6.  A declarative "DSL" for specifying the lexers.
