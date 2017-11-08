@@ -3,9 +3,9 @@
 
 [[projects]]
   name = "github.com/timtadh/data-structures"
-  packages = ["test"]
-  revision = "cd917ad609bdb63c00235a988ef8031d64d8c9b4"
-  version = "v0.5.0"
+  packages = ["errors","hashtable","linked","list","set","test","tree","tree/avl","types"]
+  revision = "d69ddac42beae463c5770d2b2b8a4b75acbe556a"
+  version = "v0.5.1"
 
 [[projects]]
   name = "github.com/timtadh/getopt"
@@ -16,6 +16,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3cfaba470b57fbf90d69fcecbe68cfa131a70b27c45f2431bdcea8e3f44f50e0"
+  inputs-digest = "76a5bb0972381f426ed22402dabe6dbe98f28e4722ff3894d7e23ace61bdc0e2"
   solver-name = "gps-cdcl"
   solver-version = 1
