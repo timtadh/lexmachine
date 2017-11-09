@@ -20,8 +20,8 @@ func init() {
 	log = logpkg.New(os.Stderr, "", 0)
 }
 
-var usageMessage string = "lexc -p <pattern> [-p <pattern>]*"
-var extendedMessage string = `
+var usageMessage = "lexc -p <pattern> [-p <pattern>]*"
+var extendedMessage = `
 lexc compiles regular expressions to a program suitable for lexing
 
 Options
