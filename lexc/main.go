@@ -20,8 +20,8 @@ func init() {
 	log = logpkg.New(os.Stderr, "", 0)
 }
 
-var UsageMessage string = "lexc -p <pattern> [-p <pattern>]*"
-var ExtendedMessage string = `
+var usageMessage string = "lexc -p <pattern> [-p <pattern>]*"
+var extendedMessage string = `
 lexc compiles regular expressions to a program suitable for lexing
 
 Options
@@ -33,10 +33,10 @@ Specs
         a regex pattern
 `
 
-func Usage(code int) {
-	fmt.Fprintln(os.Stderr, UsageMessage)
+func usage(code int) {
+	fmt.Fprintln(os.Stderr, usageMessage)
 	if code == 0 {
-		fmt.Fprintln(os.Stderr, ExtendedMessage)
+		fmt.Fprintln(os.Stderr, extendedMessage)
 		code = 1
 	} else {
 		fmt.Fprintln(os.Stderr, "Try -h or --help for help")
@@ -55,14 +55,14 @@ func main() {
 	_, optargs, err := getopt.GetOpt(os.Args[1:], short, long)
 	if err != nil {
 		log.Print(os.Stderr, err)
-		Usage(1)
+		usage(1)
 	}
 
 	patterns := make([]string, 0, 10)
 	for _, oa := range optargs {
 		switch oa.Opt() {
 		case "-h", "--help":
-			Usage(0)
+			usage(0)
 		case "-p", "--pattern":
 			patterns = append(patterns, oa.Arg())
 		}
@@ -70,7 +70,7 @@ func main() {
 
 	if len(patterns) <= 0 {
 		log.Print("Must supply some regulars expressions!")
-		Usage(1)
+		usage(1)
 	}
 
 	asts := make([]frontend.AST, 0, len(patterns))
