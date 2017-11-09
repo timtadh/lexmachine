@@ -12,6 +12,7 @@ import (
 	"github.com/timtadh/lexmachine/machines"
 )
 
+// DFA is a Deterministic Finite-state Automaton
 type DFA struct {
 	minimal   bool
 	Start     int                   // the starting state
@@ -21,7 +22,7 @@ type DFA struct {
 	Matches   [][]int               // match-id to list of accepting states
 }
 
-// Generates a DFA from a regular expressions AST. The generated DFA is
+// Generate a DFA from a regular expressions AST. The generated DFA is
 // minimized during the generation process.
 func Generate(root frontend.AST) *DFA {
 	ast := Label(root)
@@ -172,11 +173,10 @@ func (dfa *DFA) match(text string) int {
 	for tc := 0; tc < len(text); tc++ {
 		s = dfa.Trans[s][text[tc]]
 	}
-	if mid, has := dfa.Accepting[s]; !has {
-		return -1
-	} else {
+	if mid, has := dfa.Accepting[s]; has {
 		return mid
 	}
+	return -1
 }
 
 func (dfa *DFA) minimize() *DFA {
