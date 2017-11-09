@@ -5,6 +5,9 @@ By Tim Henderson
 Copyright 2014-2017, All Rights Reserved. Made available for public use under
 the terms of a BSD 3-Clause license.
 
+[![GoDoc](https://godoc.org/github.com/timtadh/lexmachine?status.svg)](https://godoc.org/github.com/timtadh/lexmachine)
+[![ReportCard](https://goreportcard.com/badge/github.com/timtadh/lexmachine)](https://goreportcard.com/report/github.com/timtadh/lexmachine)
+
 ## What?
 
 `lexmachine` is a full lexical analysis framework for the Go programming
