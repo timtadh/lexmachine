@@ -1,38 +1,47 @@
 package queue
 
+// Queue is a fast unique items queue which stores positive integers up to a
+// fixed bound.
 type Queue struct {
 	list []uint32
 	set  []uint32
 }
 
-func New(programLength int) *Queue {
-	self := new(Queue)
-	self.list = make([]uint32, 0, 10)
-	self.set = make([]uint32, programLength)
-	return self
+// New creates a Queue where n-1 is the maximum positive integer which can be
+// stored in the queue.
+func New(n int) *Queue {
+	q := new(Queue)
+	q.list = make([]uint32, 0, 10)
+	q.set = make([]uint32, n)
+	return q
 }
 
-func (self *Queue) Empty() bool { return len(self.list) <= 0 }
+// Empty returns true if the queue is empty
+func (q *Queue) Empty() bool { return len(q.list) <= 0 }
 
-func (self *Queue) Has(pc uint32) bool {
-	idx := self.set[pc]
-	return idx < uint32(len(self.list)) && self.list[idx] == pc
+// Has checks the queue to see if pc is in it
+func (q *Queue) Has(pc uint32) bool {
+	idx := q.set[pc]
+	return idx < uint32(len(q.list)) && q.list[idx] == pc
 }
 
-func (self *Queue) Clear() {
-	self.list = self.list[:0]
+// Clear clears the queue
+func (q *Queue) Clear() {
+	q.list = q.list[:0]
 }
 
-func (self *Queue) Push(pc uint32) {
-	if self.Has(pc) {
+// Push adds an item to the queue
+func (q *Queue) Push(pc uint32) {
+	if q.Has(pc) {
 		return
 	}
-	self.set[pc] = uint32(len(self.list))
-	self.list = append(self.list, pc)
+	q.set[pc] = uint32(len(q.list))
+	q.list = append(q.list, pc)
 }
 
-func (self *Queue) Pop() uint32 {
-	pc := self.list[len(self.list)-1]
-	self.list = self.list[:len(self.list)-1]
+// Pop removes an item from the queue
+func (q *Queue) Pop() uint32 {
+	pc := q.list[len(q.list)-1]
+	q.list = q.list[:len(q.list)-1]
 	return pc
 }
