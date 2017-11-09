@@ -80,7 +80,7 @@ type Lexer struct {
 	patterns   []*pattern
 	nfaMatches map[int]int "match_idx -> pat_idx"
 	dfaMatches map[int]int "match_idx -> pat_idx"
-	program    inst.InstSlice
+	program    inst.Slice
 	dfa        *dfapkg.DFA
 }
 

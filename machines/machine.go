@@ -121,7 +121,7 @@ type Scanner func(int) (int, *Match, error, Scanner)
 // LexerEngine does the actual tokenization of the byte slice text using the
 // NFA bytecode in program. If the lexing process fails the Scanner will return
 // an UnconsumedInput error.
-func LexerEngine(program inst.InstSlice, text []byte) Scanner {
+func LexerEngine(program inst.Slice, text []byte) Scanner {
 	done := false
 	matchPC := -1
 	matchTC := -1

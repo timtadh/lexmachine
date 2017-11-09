@@ -11,7 +11,7 @@ func TestPrint(t *testing.T) {
 	t.Log(j)
 	t.Log(k)
 	t.Log(l)
-	s := make(InstSlice, 4)
+	s := make(Slice, 4)
 	s[0] = i
 	s[1] = j
 	s[2] = k

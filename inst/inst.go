@@ -19,8 +19,8 @@ type Inst struct {
 	Y  uint32
 }
 
-// InstSlice is a list of NFA instructions
-type InstSlice []*Inst
+// Slice is a list of NFA instructions
+type Slice []*Inst
 
 // New creates a new instruction
 func New(op uint8, x, y uint32) *Inst {
@@ -32,18 +32,18 @@ func New(op uint8, x, y uint32) *Inst {
 }
 
 // String humanizes the byte code
-func (self Inst) String() (s string) {
-	switch self.Op {
+func (i Inst) String() (s string) {
+	switch i.Op {
 	case CHAR:
-		if self.X == self.Y {
-			s = fmt.Sprintf("CHAR   %d (%q)", self.X, string([]byte{byte(self.X)}))
+		if i.X == i.Y {
+			s = fmt.Sprintf("CHAR   %d (%q)", i.X, string([]byte{byte(i.X)}))
 		} else {
-			s = fmt.Sprintf("CHAR   %d (%q), %d (%q)", self.X, string([]byte{byte(self.X)}), self.Y, string([]byte{byte(self.Y)}))
+			s = fmt.Sprintf("CHAR   %d (%q), %d (%q)", i.X, string([]byte{byte(i.X)}), i.Y, string([]byte{byte(i.Y)}))
 		}
 	case SPLIT:
-		s = fmt.Sprintf("SPLIT  %v, %v", self.X, self.Y)
+		s = fmt.Sprintf("SPLIT  %v, %v", i.X, i.Y)
 	case JMP:
-		s = fmt.Sprintf("JMP    %v", self.X)
+		s = fmt.Sprintf("JMP    %v", i.X)
 	case MATCH:
 		s = "MATCH"
 	}
@@ -51,14 +51,14 @@ func (self Inst) String() (s string) {
 }
 
 // Serialize outputs machine readable assembly
-func (self Inst) Serialize() (s string) {
-	switch self.Op {
+func (i Inst) Serialize() (s string) {
+	switch i.Op {
 	case CHAR:
-		s = fmt.Sprintf("CHAR   %d, %d", self.X, self.Y)
+		s = fmt.Sprintf("CHAR   %d, %d", i.X, i.Y)
 	case SPLIT:
-		s = fmt.Sprintf("SPLIT  %v, %v", self.X, self.Y)
+		s = fmt.Sprintf("SPLIT  %v, %v", i.X, i.Y)
 	case JMP:
-		s = fmt.Sprintf("JMP    %v", self.X)
+		s = fmt.Sprintf("JMP    %v", i.X)
 	case MATCH:
 		s = "MATCH"
 	}
@@ -66,9 +66,9 @@ func (self Inst) Serialize() (s string) {
 }
 
 // String humanizes the byte code
-func (self InstSlice) String() (s string) {
+func (is Slice) String() (s string) {
 	s = "{\n"
-	for i, inst := range self {
+	for i, inst := range is {
 		if inst == nil {
 			continue
 		}
@@ -83,9 +83,9 @@ func (self InstSlice) String() (s string) {
 }
 
 // Serialize outputs machine readable assembly
-func (self InstSlice) Serialize() (s string) {
-	lines := make([]string, 0, len(self))
-	for i, inst := range self {
+func (is Slice) Serialize() (s string) {
+	lines := make([]string, 0, len(is))
+	for i, inst := range is {
 		lines = append(lines, fmt.Sprintf("%3d %s", i, inst.Serialize()))
 	}
 	return strings.Join(lines, "\n")

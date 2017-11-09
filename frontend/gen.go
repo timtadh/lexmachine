@@ -9,11 +9,11 @@ import (
 )
 
 type generator struct {
-	program inst.InstSlice
+	program inst.Slice
 }
 
 // Generate an NFA program from the AST for a regular expression.
-func Generate(ast AST) (inst.InstSlice, error) {
+func Generate(ast AST) (inst.Slice, error) {
 	g := &generator{
 		program: make([]*inst.Inst, 0, 100),
 	}

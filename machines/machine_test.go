@@ -6,7 +6,7 @@ import "github.com/timtadh/lexmachine/inst"
 func TestLexerMatch(t *testing.T) {
 	text := []byte("ababcbcbb")
 	//. (a|b)*cba?(c|b)bb
-	program := make(inst.InstSlice, 20)
+	program := make(inst.Slice, 20)
 
 	program[0] = inst.New(inst.SPLIT, 1, 6)
 	program[1] = inst.New(inst.SPLIT, 2, 4)
@@ -51,7 +51,7 @@ func TestLexerMatch(t *testing.T) {
 func TestLexerNoMatch(t *testing.T) {
 	text := []byte("ababcbcb")
 	//. (a|b)*cba?(c|b)bb
-	program := make(inst.InstSlice, 20)
+	program := make(inst.Slice, 20)
 
 	program[0] = inst.New(inst.SPLIT, 1, 6)
 	program[1] = inst.New(inst.SPLIT, 2, 4)
@@ -88,7 +88,7 @@ func TestLexerNoMatch(t *testing.T) {
 
 func TestLexerThreeStrings(t *testing.T) {
 	var text = []byte("struct  *")
-	program := make(inst.InstSlice, 30)
+	program := make(inst.Slice, 30)
 
 	program[0] = inst.New(inst.SPLIT, 2, 1)  // go to 1 or 2/3
 	program[1] = inst.New(inst.SPLIT, 9, 14) // go to 2 or 3
@@ -133,7 +133,7 @@ func TestLexerThreeStrings(t *testing.T) {
 
 func TestLexerRestart(t *testing.T) {
 	var text = []byte("struct\n  *")
-	program := make(inst.InstSlice, 30)
+	program := make(inst.Slice, 30)
 
 	program[0] = inst.New(inst.SPLIT, 2, 1)  // go to 1 or 2/3
 	program[1] = inst.New(inst.SPLIT, 9, 20) // go to 2 or 3

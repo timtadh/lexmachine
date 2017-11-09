@@ -22,7 +22,7 @@ func TestParse(x *testing.T) {
 	}
 }
 
-func tMatch(program inst.InstSlice, text string, t *test.T) {
+func tMatch(program inst.Slice, text string, t *test.T) {
 	expected := []machines.Match{{len(program) - 1, 0, 1, 1, 1, len(text), []byte(text)}}
 	if expected[0].EndColumn == 0 {
 		expected[0].EndColumn = 1
@@ -41,7 +41,7 @@ func tMatch(program inst.InstSlice, text string, t *test.T) {
 	t.Assert(i == len(expected), "unconsumed matches %v", expected[i:])
 }
 
-func tNoMatch(program inst.InstSlice, text string, t *test.T) {
+func tNoMatch(program inst.Slice, text string, t *test.T) {
 	scan := machines.LexerEngine(program, []byte(text))
 	for tc, m, err, scan := scan(0); scan != nil; tc, m, err, scan = scan(tc) {
 		if err == nil {
