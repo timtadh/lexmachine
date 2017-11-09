@@ -21,6 +21,8 @@ type DFA struct {
 	Matches   [][]int               // match-id to list of accepting states
 }
 
+// Generates a DFA from a regular expressions AST. The generated DFA is
+// minimized during the generation process.
 func Generate(root frontend.AST) *DFA {
 	ast := Label(root)
 	positions := ast.Positions

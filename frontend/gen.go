@@ -86,11 +86,11 @@ func (g *generator) alt(a *Alternation) (fill []*uint32) {
 
 func (g *generator) repeat(ast AST) (fill []*uint32) {
 	split := inst.New(inst.SPLIT, 0, 0)
-	split_pos := uint32(len(g.program))
+	splitPos := uint32(len(g.program))
 	g.program = append(g.program, split)
 	split.X = uint32(len(g.program))
 	g.dofill(g.gen(ast))
-	jmp := inst.New(inst.JMP, split_pos, 0)
+	jmp := inst.New(inst.JMP, splitPos, 0)
 	g.program = append(g.program, jmp)
 	return []*uint32{&split.Y}
 }

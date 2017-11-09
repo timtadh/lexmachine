@@ -18,6 +18,7 @@ type AltMatch struct {
 	B AST
 }
 
+// Children returns a list of the child nodes
 func (a *AltMatch) Children() []AST {
 	return []AST{a.A, a.B}
 }
@@ -30,6 +31,7 @@ func (a *AltMatch) String() string {
 // EOS end of string
 type EOS struct{}
 
+// Children returns a list of the child nodes
 func (e *EOS) Children() []AST {
 	return []AST{}
 }
@@ -44,6 +46,7 @@ type Match struct {
 	AST
 }
 
+// Children returns a list of the child nodes
 func (m *Match) Children() []AST {
 	return []AST{m.AST}
 }
@@ -59,6 +62,7 @@ type Alternation struct {
 	B AST
 }
 
+// Children returns a list of the child nodes
 func (a *Alternation) Children() []AST {
 	return []AST{a.A, a.B}
 }
@@ -73,6 +77,7 @@ type Star struct {
 	AST
 }
 
+// Children returns a list of the child nodes
 func (s *Star) Children() []AST {
 	return []AST{s.AST}
 }
@@ -87,6 +92,7 @@ type Plus struct {
 	AST
 }
 
+// Children returns a list of the child nodes
 func (p *Plus) Children() []AST {
 	return []AST{p.AST}
 }
@@ -101,6 +107,7 @@ type Maybe struct {
 	AST
 }
 
+// Children returns a list of the child nodes
 func (m *Maybe) Children() []AST {
 	return []AST{m.AST}
 }
@@ -115,6 +122,7 @@ type Concat struct {
 	Items []AST
 }
 
+// Children returns a list of the child nodes
 func (c *Concat) Children() []AST {
 	return c.Items
 }
@@ -136,6 +144,7 @@ type Range struct {
 	To   byte
 }
 
+// Children returns a list of the child nodes
 func (r *Range) Children() []AST {
 	return []AST{}
 }
@@ -154,6 +163,7 @@ type Character struct {
 	Char byte
 }
 
+// Children returns a list of the child nodes
 func (c *Character) Children() []AST {
 	return []AST{}
 }

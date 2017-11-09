@@ -22,7 +22,7 @@ func TestParse(x *testing.T) {
 	}
 }
 
-func t_match(program inst.InstSlice, text string, t *test.T) {
+func tMatch(program inst.InstSlice, text string, t *test.T) {
 	expected := []machines.Match{{len(program) - 1, 0, 1, 1, 1, len(text), []byte(text)}}
 	if expected[0].EndColumn == 0 {
 		expected[0].EndColumn = 1
@@ -41,7 +41,7 @@ func t_match(program inst.InstSlice, text string, t *test.T) {
 	t.Assert(i == len(expected), "unconsumed matches %v", expected[i:])
 }
 
-func t_nomatch(program inst.InstSlice, text string, t *test.T) {
+func tNoMatch(program inst.InstSlice, text string, t *test.T) {
 	scan := machines.LexerEngine(program, []byte(text))
 	for tc, m, err, scan := scan(0); scan != nil; tc, m, err, scan = scan(tc) {
 		if err == nil {
@@ -69,19 +69,19 @@ func TestParseConcatAlts(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "A", t)
-	t_match(program, "CFHB", t)
-	t_match(program, "CFIB", t)
-	t_match(program, "CGHB", t)
-	t_match(program, "CGIB", t)
-	t_match(program, "DFHB", t)
-	t_match(program, "DFIB", t)
-	t_match(program, "DGHB", t)
-	t_match(program, "DGIB", t)
-	t_match(program, "EFHB", t)
-	t_match(program, "EFIB", t)
-	t_match(program, "EGHB", t)
-	t_match(program, "EGIB", t)
+	tMatch(program, "A", t)
+	tMatch(program, "CFHB", t)
+	tMatch(program, "CFIB", t)
+	tMatch(program, "CGHB", t)
+	tMatch(program, "CGIB", t)
+	tMatch(program, "DFHB", t)
+	tMatch(program, "DFIB", t)
+	tMatch(program, "DGHB", t)
+	tMatch(program, "DGIB", t)
+	tMatch(program, "EFHB", t)
+	tMatch(program, "EFIB", t)
+	tMatch(program, "EGHB", t)
+	tMatch(program, "EGIB", t)
 }
 
 func TestParseConcatAltMaybes(x *testing.T) {
@@ -101,18 +101,18 @@ func TestParseConcatAltMaybes(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "", t)
-	t_match(program, "E", t)
-	t_match(program, "D", t)
-	t_match(program, "A", t)
-	t_match(program, "AE", t)
-	t_match(program, "AD", t)
-	t_match(program, "B", t)
-	t_match(program, "BE", t)
-	t_match(program, "BD", t)
-	t_match(program, "C", t)
-	t_match(program, "CE", t)
-	t_match(program, "CD", t)
+	tMatch(program, "", t)
+	tMatch(program, "E", t)
+	tMatch(program, "D", t)
+	tMatch(program, "A", t)
+	tMatch(program, "AE", t)
+	tMatch(program, "AD", t)
+	tMatch(program, "B", t)
+	tMatch(program, "BE", t)
+	tMatch(program, "BD", t)
+	tMatch(program, "C", t)
+	tMatch(program, "CE", t)
+	tMatch(program, "CD", t)
 }
 
 func TestParseConcatAltPlus(x *testing.T) {
@@ -132,11 +132,11 @@ func TestParseConcatAltPlus(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "A", t)
-	t_match(program, "AAA", t)
-	t_match(program, "AAABBCC", t)
-	t_match(program, "AAABBCC", t)
-	t_match(program, "AAABBCCD", t)
+	tMatch(program, "A", t)
+	tMatch(program, "AAA", t)
+	tMatch(program, "AAABBCC", t)
+	tMatch(program, "AAABBCC", t)
+	tMatch(program, "AAABBCCD", t)
 }
 
 func TestParseAltOps(x *testing.T) {
@@ -209,15 +209,15 @@ func TestParseConcatAltStar(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "", t)
-	t_match(program, "X", t)
-	t_match(program, "Y", t)
-	t_match(program, "A", t)
-	t_match(program, "AAA", t)
-	t_match(program, "AAACC", t)
-	t_match(program, "AAACC", t)
-	t_match(program, "AAACCFFF", t)
-	t_match(program, "CAACCGEDFX", t)
+	tMatch(program, "", t)
+	tMatch(program, "X", t)
+	tMatch(program, "Y", t)
+	tMatch(program, "A", t)
+	tMatch(program, "AAA", t)
+	tMatch(program, "AAACC", t)
+	tMatch(program, "AAACC", t)
+	tMatch(program, "AAACCFFF", t)
+	tMatch(program, "CAACCGEDFX", t)
 }
 
 func TestIdent(x *testing.T) {
@@ -237,11 +237,11 @@ func TestIdent(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "X", t)
-	t_match(program, "asdfY0923", t)
-	t_match(program, "A", t)
-	t_match(program, "AAA", t)
-	t_match(program, "AAACC", t)
+	tMatch(program, "X", t)
+	tMatch(program, "asdfY0923", t)
+	tMatch(program, "A", t)
+	tMatch(program, "AAA", t)
+	tMatch(program, "AAACC", t)
 }
 
 func TestDigitClass(x *testing.T) {
@@ -261,8 +261,8 @@ func TestDigitClass(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "0123456789", t)
-	t_nomatch(program, "a234", t)
+	tMatch(program, "0123456789", t)
+	tNoMatch(program, "a234", t)
 }
 
 func TestNotDigitClass(x *testing.T) {
@@ -282,8 +282,8 @@ func TestNotDigitClass(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "wacky wizards", t)
-	t_nomatch(program, "234", t)
+	tMatch(program, "wacky wizards", t)
+	tNoMatch(program, "234", t)
 }
 
 func TestSpaceClass(x *testing.T) {
@@ -303,8 +303,8 @@ func TestSpaceClass(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, " \t\f\r", t)
-	t_nomatch(program, "\vasdf", t)
+	tMatch(program, " \t\f\r", t)
+	tNoMatch(program, "\vasdf", t)
 }
 
 func TestNoSpaceClass(x *testing.T) {
@@ -324,8 +324,8 @@ func TestNoSpaceClass(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "\vasdf", t)
-	t_nomatch(program, " \t\f\r", t)
+	tMatch(program, "\vasdf", t)
+	tNoMatch(program, " \t\f\r", t)
 }
 
 func TestWordClass(x *testing.T) {
@@ -345,9 +345,9 @@ func TestWordClass(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "asdf_asdf", t)
-	t_nomatch(program, " asdf", t)
-	t_nomatch(program, "@#$@#$", t)
+	tMatch(program, "asdf_asdf", t)
+	tNoMatch(program, " asdf", t)
+	tNoMatch(program, "@#$@#$", t)
 }
 
 func TestNoWordClass(x *testing.T) {
@@ -367,8 +367,8 @@ func TestNoWordClass(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, " @#$", t)
-	t_nomatch(program, "asdf_asdf", t)
+	tMatch(program, " @#$", t)
+	tNoMatch(program, "asdf_asdf", t)
 }
 
 func TestMultiRangeClasses(x *testing.T) {
@@ -388,11 +388,11 @@ func TestMultiRangeClasses(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "X", t)
-	t_match(program, "asdfY0923", t)
-	t_match(program, "A", t)
-	t_match(program, "AAA", t)
-	t_match(program, "AAACC", t)
+	tMatch(program, "X", t)
+	tMatch(program, "asdfY0923", t)
+	tMatch(program, "A", t)
+	tMatch(program, "AAA", t)
+	tMatch(program, "AAACC", t)
 }
 
 func TestMultiRangeClasses2(x *testing.T) {
@@ -412,8 +412,8 @@ func TestMultiRangeClasses2(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, ".X:\"a\"", t)
-	t_nomatch(program, ".X:a\"", t)
+	tMatch(program, ".X:\"a\"", t)
+	tNoMatch(program, ".X:a\"", t)
 }
 
 func TestInvertRangeClasses1(x *testing.T) {
@@ -433,14 +433,14 @@ func TestInvertRangeClasses1(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "X", t)
-	t_match(program, "oiwe", t)
-	t_match(program, "ef", t)
-	t_match(program, "fin", t)
-	t_nomatch(program, "a", t)
-	t_nomatch(program, "b", t)
-	t_nomatch(program, "c", t)
-	t_nomatch(program, "d", t)
+	tMatch(program, "X", t)
+	tMatch(program, "oiwe", t)
+	tMatch(program, "ef", t)
+	tMatch(program, "fin", t)
+	tNoMatch(program, "a", t)
+	tNoMatch(program, "b", t)
+	tNoMatch(program, "c", t)
+	tNoMatch(program, "d", t)
 }
 
 func TestInvertRangeClasses2(x *testing.T) {
@@ -460,14 +460,14 @@ func TestInvertRangeClasses2(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "X", t)
-	t_match(program, "oiwe", t)
-	t_match(program, "ef", t)
-	t_match(program, "fin", t)
-	t_nomatch(program, "a", t)
-	t_nomatch(program, "b", t)
-	t_nomatch(program, "c", t)
-	t_nomatch(program, "d", t)
+	tMatch(program, "X", t)
+	tMatch(program, "oiwe", t)
+	tMatch(program, "ef", t)
+	tMatch(program, "fin", t)
+	tNoMatch(program, "a", t)
+	tNoMatch(program, "b", t)
+	tNoMatch(program, "c", t)
+	tNoMatch(program, "d", t)
 }
 
 func TestInvertRangeClasses3(x *testing.T) {
@@ -487,17 +487,17 @@ func TestInvertRangeClasses3(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "X", t)
-	t_match(program, "oiwe", t)
-	t_match(program, "ef", t)
-	t_match(program, "fin", t)
-	t_nomatch(program, "a", t)
-	t_nomatch(program, "b", t)
-	t_nomatch(program, "c", t)
-	t_nomatch(program, "d", t)
-	t_nomatch(program, "x", t)
-	t_nomatch(program, "y", t)
-	t_nomatch(program, "z", t)
+	tMatch(program, "X", t)
+	tMatch(program, "oiwe", t)
+	tMatch(program, "ef", t)
+	tMatch(program, "fin", t)
+	tNoMatch(program, "a", t)
+	tNoMatch(program, "b", t)
+	tNoMatch(program, "c", t)
+	tNoMatch(program, "d", t)
+	tNoMatch(program, "x", t)
+	tNoMatch(program, "y", t)
+	tNoMatch(program, "z", t)
 }
 
 func TestLineComment(x *testing.T) {
@@ -517,5 +517,5 @@ func TestLineComment(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	t_match(program, "// adfawefawe awe", t)
+	tMatch(program, "// adfawefawe awe", t)
 }

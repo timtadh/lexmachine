@@ -219,7 +219,7 @@ func TestPartialLexer(x *testing.T) {
 			return s.Token(tokenType, string(m.Bytes), m), nil
 		}
 	}
-	var lexer *Lexer = NewLexer()
+	var lexer = NewLexer()
 	lexer.Add([]byte("import|require"), getToken(tokmap["INCLUDE"]))
 	lexer.Add([]byte("function"), getToken(tokmap["FUNC"]))
 	lexer.Add([]byte("class"), getToken(tokmap["CLASS"]))

@@ -1,6 +1,11 @@
 package machines
 
+// DFATrans represents a Deterministic Finite Automatons state transition table
 type DFATrans [][256]int
+
+// DFAAccepting represents maps from accepting DFA states to match identifiers.
+// These both identify which states are accepting states and which matches they
+// belong to from the AST.
 type DFAAccepting map[int]int
 
 type lineCol struct {
@@ -33,7 +38,6 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 	matchID := -1
 	matchTC := -1
 
-	prevTC := 0
 	var scan Scanner
 	scan = func(tc int) (int, *Match, error, Scanner) {
 		if done && tc == len(text) {
@@ -68,7 +72,6 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 					EndColumn:   endLC.col,
 					Bytes:       text[startTC:matchTC],
 				}
-				prevTC = startTC
 				matchID = -1
 				return tc, match, nil, scan
 			}

@@ -10,9 +10,8 @@ import (
 	"strings"
 )
 
-var (
-	DEBUG = false // turn on debug prints
-)
+// Turn on debug prints
+var DEBUG = false
 
 // ParseError gives structured errors for parsing problems.
 type ParseError struct {
@@ -35,7 +34,7 @@ func matchErrorf(text []byte, tc int, format string, args ...interface{}) *Parse
 }
 
 func errorf(pc uintptr, ok bool, text []byte, tc int, format string, args ...interface{}) *ParseError {
-	var fn string = "unknown"
+	var fn = "unknown"
 	if ok {
 		fn = runtime.FuncForPC(pc).Name()
 		split := strings.Split(fn, ".")
@@ -77,7 +76,8 @@ func (p *ParseError) Chain(e *ParseError) *ParseError {
 	return p
 }
 
-// Compute the line and column of a particular index inside of a byte slice.
+// LineCol computes the line and column of a particular index inside of a byte
+// slice.
 func LineCol(text []byte, tc int) (line int, col int) {
 	for i := 0; i <= tc && i < len(text); i++ {
 		if text[i] == '\n' {
@@ -208,7 +208,7 @@ func (p *parser) atomicOp(i int) (int, AST, *ParseError) {
 	} else if err != nil {
 		return i, A, err
 	}
-	var N AST = A
+	var N = A
 	for _, OP := range OPS {
 		N = NewApplyOp(OP, N)
 	}
@@ -379,23 +379,23 @@ func (p *parser) CHAR(i int) (int, AST, *ParseError) {
 }
 
 var (
-	range_d = canonizeRanges([]*Range{NewRange(48, 57)})
-	range_D = invertRanges(range_d)
-	range_s = canonizeRanges([]*Range{
+	builtInd = canonizeRanges([]*Range{NewRange(48, 57)})
+	builtInD = invertRanges(builtInd)
+	builtIns = canonizeRanges([]*Range{
 		NewRange(9, 9),   // \t
 		NewRange(10, 10), // \n
 		NewRange(12, 12), // \f
 		NewRange(13, 13), // \r
 		NewRange(32, 32), // ' ' (a space)
 	})
-	range_S = invertRanges(range_s)
-	range_w = canonizeRanges([]*Range{
+	builtInS = invertRanges(builtIns)
+	builtInw = canonizeRanges([]*Range{
 		NewRange(48, 57),  // 0-9
 		NewRange(65, 90),  // A-Z
 		NewRange(97, 122), // a-z
 		NewRange(95, 95),  // _
 	})
-	range_W = invertRanges(range_w)
+	builtInW = invertRanges(builtInw)
 )
 
 func (p *parser) builtInClass(i int) (int, AST, *ParseError) {
@@ -404,17 +404,17 @@ func (p *parser) builtInClass(i int) (int, AST, *ParseError) {
 	}
 	if i+1 < len(p.text) {
 		if p.text[i+1] == 'd' {
-			return i + 2, rangesToAST(range_d), nil
+			return i + 2, rangesToAST(builtInd), nil
 		} else if p.text[i+1] == 'D' {
-			return i + 2, rangesToAST(range_D), nil
+			return i + 2, rangesToAST(builtInD), nil
 		} else if p.text[i+1] == 's' {
-			return i + 2, rangesToAST(range_s), nil
+			return i + 2, rangesToAST(builtIns), nil
 		} else if p.text[i+1] == 'S' {
-			return i + 2, rangesToAST(range_S), nil
+			return i + 2, rangesToAST(builtInS), nil
 		} else if p.text[i+1] == 'w' {
-			return i + 2, rangesToAST(range_w), nil
+			return i + 2, rangesToAST(builtInw), nil
 		} else if p.text[i+1] == 'W' {
-			return i + 2, rangesToAST(range_W), nil
+			return i + 2, rangesToAST(builtInW), nil
 		}
 		return i, nil, Errorf(p.text, i, "Unknown class %q", string([]byte{p.text[i+1]}))
 	}
@@ -566,7 +566,7 @@ func rangesToAST(ranges []*Range) AST {
 	return ast
 }
 
-func (p *parser) match_any(i int) (int, *Character, *ParseError) {
+func (p *parser) matchAny(i int) (int, *Character, *ParseError) {
 	if i >= len(p.text) {
 		return i, nil, Errorf(p.text, i, "out of p.text, %d", i)
 	}
