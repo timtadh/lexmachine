@@ -6,64 +6,6 @@ import (
 	"github.com/timtadh/lexmachine/frontend"
 )
 
-func (a *LabeledAST) Follow() (firstOfTree []int, follow []map[int]bool) {
-	positions := a.Positions
-	nullable := a.MatchesEmptyString()
-	first := a.First()
-	last := a.Last()
-
-	// get the first of the whole ast by retrieving the first for the root (len(order)-1).
-	firstOfTree = make([]int, 0, len(first[len(a.Order)-1]))
-	for _, p := range first[len(a.Order)-1] {
-		firstOfTree = append(firstOfTree, p)
-	}
-
-	if a.follow != nil {
-		return firstOfTree, a.follow
-	}
-
-	follow = make([]map[int]bool, len(positions))
-	for i := range follow {
-		follow[i] = make(map[int]bool)
-	}
-	for i, node := range a.Order {
-		switch n := node.(type) {
-		case *frontend.Concat:
-			for x := 0; x < len(n.Items)-1; x++ {
-				j := a.Kids[i][x]
-				kFirst := make([]int, 0, 10)
-				for y := x + 1; y < len(n.Items); y++ {
-					k := a.Kids[i][y]
-					for _, p := range first[k] {
-						kFirst = append(kFirst, p)
-					}
-					if !nullable[k] {
-						break
-					}
-				}
-				for _, p := range last[j] {
-					for _, q := range kFirst {
-						follow[p][q] = true
-					}
-				}
-			}
-		case *frontend.Star, *frontend.Plus:
-			nFirst := make([]int, 0, 10)
-			for _, p := range first[i] {
-				nFirst = append(nFirst, p)
-			}
-			for _, p := range last[i] {
-				for _, q := range nFirst {
-					follow[p][q] = true
-				}
-			}
-		}
-	}
-
-	a.follow = follow
-	return firstOfTree, follow
-}
-
 // LabeledAST is a post-order labeled version of the AST. The root the node will be Order[len(Order)-1].
 type LabeledAST struct {
 	Root      frontend.AST   // root of the AST
@@ -138,6 +80,70 @@ func (a *LabeledAST) pos(oid int) int {
 	}
 }
 
+// Follow computes look up tables for each Position (leaf node) in the tree
+// which indicates what other Position could follow the current position in a
+// matching string. It also computes what positions appear first in the tree.
+func (a *LabeledAST) Follow() (firstOfTree []int, follow []map[int]bool) {
+	positions := a.Positions
+	nullable := a.MatchesEmptyString()
+	first := a.First()
+	last := a.Last()
+
+	// get the first of the whole ast by retrieving the first for the root (len(order)-1).
+	firstOfTree = make([]int, 0, len(first[len(a.Order)-1]))
+	for _, p := range first[len(a.Order)-1] {
+		firstOfTree = append(firstOfTree, p)
+	}
+
+	if a.follow != nil {
+		return firstOfTree, a.follow
+	}
+
+	follow = make([]map[int]bool, len(positions))
+	for i := range follow {
+		follow[i] = make(map[int]bool)
+	}
+	for i, node := range a.Order {
+		switch n := node.(type) {
+		case *frontend.Concat:
+			for x := 0; x < len(n.Items)-1; x++ {
+				j := a.Kids[i][x]
+				kFirst := make([]int, 0, 10)
+				for y := x + 1; y < len(n.Items); y++ {
+					k := a.Kids[i][y]
+					for _, p := range first[k] {
+						kFirst = append(kFirst, p)
+					}
+					if !nullable[k] {
+						break
+					}
+				}
+				for _, p := range last[j] {
+					for _, q := range kFirst {
+						follow[p][q] = true
+					}
+				}
+			}
+		case *frontend.Star, *frontend.Plus:
+			nFirst := make([]int, 0, 10)
+			for _, p := range first[i] {
+				nFirst = append(nFirst, p)
+			}
+			for _, p := range last[i] {
+				for _, q := range nFirst {
+					follow[p][q] = true
+				}
+			}
+		}
+	}
+
+	a.follow = follow
+	return firstOfTree, follow
+}
+
+// MatchesEmptyString computes a look up table for each node in the tree (in
+// post order, matching the Order member) on whether or not the subtree rooted
+// in each node matches the empty string.
 func (a *LabeledAST) MatchesEmptyString() (nullable []bool) {
 	if a.nullable != nil {
 		return a.nullable
@@ -177,6 +183,10 @@ func (a *LabeledAST) MatchesEmptyString() (nullable []bool) {
 	return nullable
 }
 
+// First computes a look up table for each node in the tree (in post order,
+// matching the Order member) indicating for the subtree rooted at each node
+// which positions (leaf nodes indexes in the Positions slice) will appear at
+// the beginning of a string matching that subtree.
 func (a *LabeledAST) First() (first [][]int) {
 	if a.first != nil {
 		return a.first
@@ -220,6 +230,10 @@ func (a *LabeledAST) First() (first [][]int) {
 	return first
 }
 
+// Last computes a look up table for each node in the tree (in post order,
+// matching the Order member) indicating for the subtree rooted at each node
+// which positions (leaf nodes indexes in the Positions slice) will appear at
+// the end of a string matching that subtree.
 func (a *LabeledAST) Last() (last [][]int) {
 	if a.last != nil {
 		return a.last
