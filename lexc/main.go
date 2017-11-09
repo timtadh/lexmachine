@@ -54,7 +54,7 @@ func main() {
 
 	_, optargs, err := getopt.GetOpt(os.Args[1:], short, long)
 	if err != nil {
-		log.Print(os.Stderr, err)
+		log.Print(err)
 		usage(1)
 	}
 

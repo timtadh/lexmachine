@@ -81,7 +81,7 @@ func TestLexerNoMatch(t *testing.T) {
 		}
 		_, unconsumed := err.(*UnconsumedInput)
 		if !unconsumed {
-			t.Fatal("unexpected error type (expected *UnconsumedInput) got %v", err)
+			t.Fatalf("unexpected error type (expected *UnconsumedInput) got %v", err)
 		}
 	}
 }

@@ -78,8 +78,8 @@ type pattern struct {
 // scanner with Scanner to tokenizing a byte string.
 type Lexer struct {
 	patterns   []*pattern
-	nfaMatches map[int]int "match_idx -> pat_idx"
-	dfaMatches map[int]int "match_idx -> pat_idx"
+	nfaMatches map[int]int // match_idx -> pat_idx
+	dfaMatches map[int]int // match_idx -> pat_idx
 	program    inst.Slice
 	dfa        *dfapkg.DFA
 }
