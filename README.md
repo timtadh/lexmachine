@@ -228,7 +228,8 @@ import (
 )
 
 import (
-    "github.com/timtadh/dot"
+	"github.com/timtadh/lexmachine"
+	"github.com/timtadh/lexmachine/machines"
 )
 
 func main() {
@@ -257,7 +258,7 @@ func main() {
         } else if err != nil {
             log.Fatal(err)
         }
-        token := tok.(*lex.Token)
+        token := tok.(*lexmachine.Token)
         fmt.Printf("%-7v | %-10v | %v:%v-%v:%v\n",
             Tokens[token.Type],
             string(token.Lexeme),
