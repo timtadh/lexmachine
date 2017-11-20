@@ -224,7 +224,7 @@ Expressions](https://en.wikipedia.org/wiki/Regular_expression) to specify the
 For a more advanced introduction to regular expressions engines see Russ Cox's
 [articles](https://swtch.com/~rsc/regexp/). To learn more about how regular
 expressions are used to *tokenize* string take a look at Alex Aiken's [video
-lectures](https://www.youtube.com/watch?v=SRhkfvqeA0M) on the subject.
+lectures](https://youtu.be/SRhkfvqeA1M) on the subject.
 
 A regular expression is a *pattern* which *matches* a set of strings. It is made
 up of *characters* such as `a` or `b`, characters with special meanings (such as
