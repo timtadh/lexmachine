@@ -28,6 +28,12 @@ analysis system for Go.
 -   [Tutorial](http://hackthology.com/writing-a-lexer-in-go-with-lexmachine.html)
 -   [![GoDoc](https://godoc.org/github.com/timtadh/lexmachine?status.svg)](https://godoc.org/github.com/timtadh/lexmachine)
 
+## Announcements
+
+Subscribe to the [mailing
+list](https://groups.google.com/forum/#!forum/lexmachine-users) to get
+announcement of major changes, new versions, and important patches.
+
 ## What is in Box
 
 `lexmachine` includes the following components
