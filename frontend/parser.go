@@ -305,27 +305,6 @@ func (p *parser) group(i int) (int, AST, *ParseError) {
 	return i, A, nil
 }
 
-func (p *parser) concat(i int) (int, AST, *ParseError) {
-	if DEBUG {
-		log.Printf("enter concat %v '%v'", i, string(p.text[i:]))
-		defer func() {
-			log.Printf("exit concat %v '%v'", i, string(p.text[i:]))
-		}()
-	}
-	if i >= len(p.text) {
-		return i, nil, nil
-	}
-	i, Ch, err := p.char(i)
-	if err != nil {
-		return i, nil, nil
-	}
-	i, Co, err := p.concat(i)
-	if err != nil {
-		return i, Ch, nil
-	}
-	return i, NewConcat(Ch, Co), nil
-}
-
 func (p *parser) char(i int) (int, AST, *ParseError) {
 	if DEBUG {
 		log.Printf("enter char %v '%v'", i, string(p.text[i:]))
