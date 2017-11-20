@@ -217,8 +217,62 @@ generation, and x86 code generation.
 
 ## Complete Example
 
+### Using the Lexer
+
 ```go
-package example
+package main
+
+import (
+    "fmt"
+    "log"
+)
+
+import (
+    "github.com/timtadh/dot"
+)
+
+func main() {
+    s, err := Lexer.Scanner([]byte(`digraph {
+  rankdir=LR;
+  a [label="a" shape=box];
+  c [<label>=<<u>C</u>>];
+  b [label="bb"];
+  a -> c;
+  c -> b;
+  d -> c;
+  b -> a;
+  b -> e;
+  e -> f;
+}`))
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println("Type    | Lexeme     | Position")
+    fmt.Println("--------+------------+------------")
+    for tok, err, eof := s.Next(); !eof; tok, err, eof = s.Next() {
+        if ui, is := err.(*machines.UnconsumedInput); is{
+            // to skip bad token do:
+            // s.TC = ui.FailTC
+            log.Fatal(err) // however, we will just fail the program
+        } else if err != nil {
+            log.Fatal(err)
+        }
+        token := tok.(*lex.Token)
+        fmt.Printf("%-7v | %-10v | %v:%v-%v:%v\n",
+            Tokens[token.Type],
+            string(token.Lexeme),
+            token.StartLine,
+            token.StartColumn,
+            token.EndLine,
+            token.EndColumn)
+    }
+}
+```
+
+### Lexer Definition
+
+```go
+package main
 
 import (
 	"fmt"
