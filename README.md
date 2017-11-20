@@ -18,23 +18,26 @@ allows the users to consume any number of further bytes after a match. So if you
 want to support nested C-style comments or other paired structures you can do so
 at the lexical analysis stage.
 
+Subscribe to the [mailing
+list](https://groups.google.com/forum/#!forum/lexmachine-users) to get
+announcement of major changes, new versions, and important patches.
+
 ## Goal
 
 `lexmachine` intends to be the best, fastest, and easiest to use lexical
 analysis system for Go.
+
+1. [Documentation](#documentation)
+1. [Quick Start](#quick-start)
+1. [Regular Expressions](#regular-expressions)
+1. [History](#history)
 
 ## Documentation
 
 -   [Tutorial](http://hackthology.com/writing-a-lexer-in-go-with-lexmachine.html)
 -   [![GoDoc](https://godoc.org/github.com/timtadh/lexmachine?status.svg)](https://godoc.org/github.com/timtadh/lexmachine)
 
-## Announcements
-
-Subscribe to the [mailing
-list](https://groups.google.com/forum/#!forum/lexmachine-users) to get
-announcement of major changes, new versions, and important patches.
-
-## What is in Box
+### What is in Box
 
 `lexmachine` includes the following components
 
