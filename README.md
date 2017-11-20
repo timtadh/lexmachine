@@ -216,6 +216,152 @@ func ExampleLex() error {
 }
 ```
 
+## Regular Expressions
+
+Lexmachine (like most lexical analysis frameworks) uses [Regular
+Expressions](https://en.wikipedia.org/wiki/Regular_expression) to specify the
+*patterns* to match when spitting the string up into categorized *tokens.* 
+For a more advanced introduction to regular expressions engines see Russ Cox's
+[articles](https://swtch.com/~rsc/regexp/). To learn more about how regular
+expressions are used to *tokenize* string take a look at Alex Aiken's [video
+lectures](https://www.youtube.com/watch?v=SRhkfvqeA0M) on the subject.
+
+A regular expression is a *pattern* which *matches* a set of strings. It is made
+up of *characters* such as `a` or `b`, characters with special meanings (such as
+`.` which matches any character), and operators. The regular expression `abc`
+matches exactly one string `abc`.
+
+### Charater Expressions
+
+In lexmachine most characters (eg. `a`, `b` or `#`) represent themselves. Some
+have special meanings (as detailed below in operators). However, all characters
+can be represented by prefixing the character with a `\`.
+
+#### Any Character
+
+`.` matches any character.
+
+#### Special Characters
+
+1. `\` use `\\` to match
+2. newline use `\n` to match
+3. cariage return use `\r` to match
+4. tab use `\t` to match
+5. `.` use `\.` to match
+6. operators: {`|`, `+`, `*`, `?`, `(`, `)`, `[`, `]`, `^`} prefix with a `\` to
+   match.
+
+#### Character Classes
+
+Sometimes it is advantages to match a variety of characters. For instance, if
+you want to ignore captilization for the work `Capitol` you could write the
+expression `[Cc]aptiol` which would match both `Capitol` or `capitol`. There are
+two forms of character ranges:
+
+1. `[abcd]` matches all the letters inside the `[]` (eg. that pattern matches
+   the strings `a`, `b`, `c`, `d`).
+2. `[a-d]` matches the range of characters between the character before the dash
+   (`a`) and the character after the dash (`d`) (eg. that pattern matches
+   the strings `a`, `b`, `c`, `d`).
+
+These two forms may be combined:
+
+For instance, `[a-zA-Z123]` matches the strings {`a`, `b`, ..., `z`, `A`, `B`,
+... `Z`, `0`, `2`, `3`}
+
+#### Inverted Character Classes
+
+Sometimes it is easier to specify the characters you don't want to match than
+the characters you do. For instance, you want to match any character but a lower
+case one. This can be achieved using an inverted class: `[^a-z]`. An inverted
+class is specified by putting a `^` just after the opening bracket.
+
+#### Built-in Character Classes
+
+1. `\d` = `[0-9]` (the digit class)
+2. `\D` = `[^0-9]` (the not a digit class)
+3. `\s` = `[ \t\n\r\f]` (the space class). where \f is a form feed (note: \f is
+   not a special sequence in lexmachine, if you want to specify the form feed
+   character (ascii 0x0c) use []byte{12}.
+4. `\S` = `[^ \t\n\r\f]` (the not a space class)
+5. `\w` = `[0-9a-zA-Z_]` (the letter class)
+5. `\W` = `[^0-9a-zA-Z_]` (the not a letter class)
+
+### Operators
+
+1. The pipe operator `|` indicates alternative choices. For instance the
+   expression `a|b` matches either the string `a` or the string `b` but not `ab`
+   or `ba` or the empty string.
+
+2. The parenthesis operator `()` groups a subexpression together. For instance
+   the expression `a(b|c)d` matches `abd` or `acd` but not `abcd`.
+
+3. The star operator `*` indicates the "starred" subexpression should match zero
+   or more times. For instance, `a*` matches the empty string, `a`, `aa`, `aaa`
+   and so on.
+
+4. The plus operator `+` indicates the "plussed" subexpression should match one
+   or more times. For instance, `a+` matches `a`, `aa`, `aaa` and so on.
+
+5. The maybe operator `?` indicates the "questioned" subexpression should match
+   zero or one times. For instance, `a?` matches the empty string and `a`.
+
+### Grammar
+
+The canonical grammar is found in the handwritten recursive descent
+[parser](https://github.com/timtadh/lexmachine/blob/master/frontend/parser.go).
+This section should be considered documentation not specification.
+
+Note: e stands for the empty string
+
+```
+Regex -> Alternation
+
+Alternation -> AtomicOps Alternation'
+
+Alternation' -> `|` AtomicOps Alternation'
+              | e
+
+AtomicOps -> AtomicOp AtomicOps
+           | e
+
+AtomicOp -> Atomic
+          | Atomic Ops
+
+Ops -> Op Ops
+     | e
+
+Op -> `+`
+    | `*`
+    | `?`
+
+Atomic -> Char
+        | Group
+
+Group -> `(` Alternation `)`
+
+Char -> CHAR
+      | CharClass
+
+CharClass -> `[` Range `]`
+           | `[` `^` Range `]`
+
+Range -> CharClassItem Range'
+
+Range' -> CharClassItem Range'
+        | e
+
+CharClassItem -> BYTE
+              -> BYTE `-` BYTE
+
+CHAR -> matches any character expect '|', '+', '*', '?', '(', ')', '[', ']', '^'
+        unless escaped. Additionally '.' is returned a as the wildcard character
+        which matches any character. Built-in character classes are also handled
+        here.
+
+BYTE -> matches any byte
+```
+
 ## History
 
 This library was started when I was teaching EECS 337 *Compiler Design and
