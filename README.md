@@ -442,7 +442,7 @@ For a more advanced introduction to regular expressions engines see Russ Cox's
 expressions are used to *tokenize* string take a look at Alex Aiken's [video
 lectures](https://youtu.be/SRhkfvqeA1M) on the subject. Finally, Aho *et al.*
 give a through treatment of the subject in the [Dragon
-Book](http://www.worldcat.org/oclc/951336274) Chapter 3.
+Book](http://www.worldcat.org/oclc/951336275) Chapter 3.
 
 A regular expression is a *pattern* which *matches* a set of strings. It is made
 up of *characters* such as `a` or `b`, characters with special meanings (such as
