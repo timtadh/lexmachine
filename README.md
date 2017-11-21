@@ -28,13 +28,15 @@ announcement of major changes, new versions, and important patches.
 analysis system for Go.
 
 1. [Documentation Links](#documentation)
-1. [Regular Expressions](#regular-expressions)
+1. [Narrative Documentation](#narrative-documentation)
+1. [Regular Expressions in `lexmachine`](#regular-expressions)
 1. [History](#history)
 1. [Complete Example](#complete-example)
 
 ## Documentation
 
 -   [Tutorial](http://hackthology.com/writing-a-lexer-in-go-with-lexmachine.html)
+-   [Narrative Documentation](#narrative-documentation)
 -   [![GoDoc](https://godoc.org/github.com/timtadh/lexmachine?status.svg)](https://godoc.org/github.com/timtadh/lexmachine)
 
 ### What is in Box
@@ -56,6 +58,381 @@ analysis system for Go.
 8.  A command `lexc` which compiles a sequence of patterns into an NFA. Mostly
     written to support a homework assignment for the class.
 
+## Narrative Documentation
+
+`lexmachine` splits strings into substrings and categorizes each substring. In
+compiler design, the substrings are referred to as *lexemes* and the
+categories are referred to as *token types* or just *tokens*. The categories are
+defined by *patterns* which are specified using [regular
+expressions](#regular-expressions). The process of splitting up a string is
+sometimes called *tokenization*, *lexical analysis*, or *lexing*.
+
+### Defining a Lexer
+
+The set of patterns (regular expressions) used to *tokenize* (split up and
+categorize) is called a *lexer*. Lexer's are first class objects in
+`lexmachine`. They can be defined once and re-used over and over-again to
+tokenize multiple strings. After the lexer has been defined it will be compiled
+(either explicitly or implicitly) into either a Non-deterministic Finite
+Automaton (NFA) or Deterministic Finite Automaton (DFA). The automaton is then
+used (and re-used) to tokenize strings.
+
+#### Creating a new Lexer
+
+```go
+lexer := lexmachine.NewLexer()
+```
+
+#### Adding a pattern
+
+Let's pretend we want a lexer which only recognizes one category: strings which
+match the word "wild" capitalized or not (eg. Wild, wild, WILD, ...). That
+expression is denoted: `[Ww][Ii][Ll][Dd]`. Patterns are added using the `Add`
+function:
+
+```go
+lexer.Add([]byte(`[Ww][Ii][Ll][Dd]`), func(s *lexmachine.Scanner, m *machines.Match) (interface{}, error) {
+	return 0, nil
+})
+```
+
+Add takes two arguments: the pattern and a call back function called a *lexing
+action*. The action allows you, the programmer, to transform the low level
+`machines.Match` object (from `github.com/lexmachine/machines`) into a object
+meaningful for your program. As an example, let's define a few token types, and
+a token object. Then we will construct appropriate action functions.
+
+```go
+Tokens := []string{
+	"WILD",
+	"SPACE",
+	"BANG",
+}
+TokenIds := make(map[string]int)
+for i, tok := range Tokens {
+	TokenIds[tok] = i
+}
+```
+
+Now that we have defined a set of three tokens (WILD, SPACE, BANG), lets create
+a token object:
+
+```go
+type Token struct {
+	TokenType int
+	Lexeme string
+	Match *machines.Match
+}
+```
+
+Now let's make a helper function which takes a `Match` and a token type and
+creates a Token.
+
+```go
+func NewToken(tokenType string, m *machines.Match) *Token {
+	return &Token{
+		TokenType: TokenIds[tokenType], // defined above
+		Lexeme: string(m.Bytes),
+		Match: m,
+	}
+}
+```
+
+Now we write an action for the previous pattern
+
+```go
+lexer.Add([]byte(`[Ww][Ii][Ll][Dd]`), func(s *lexmachine.Scanner, m *machines.Match) (interface{}, error) {
+	return NewToken("WILD", m), nil
+})
+```
+
+Writing the action functions can get tedious, a good idea is to create a helper
+function which produces these action functions:
+
+```go
+func token(tokenType string) func(*lexmachine.Scanner, *machines.Match) (interface{}, error) {
+	return func(s *lexmachine.Scanner, m *machines.Match) (interface{}, error) {
+		return NewToken(tokenType, m), nil
+	}
+}
+```
+
+Then adding patterns for our 3 tokens is concise:
+
+```go
+lexer.Add([]byte(`[Ww][Ii][Ll][Dd]`), token("WILD"))
+lexer.Add([]byte(` \t\n\r`), token("SPACE"))
+lexer.Add([]byte(`!`), token("BANG"))
+```
+
+#### Built-in Token Type
+
+Many programs use similar representations for tokens. `lexmachine` provides a
+completely optional `Token` object you can use in lieu of writing your own.
+
+```go
+type Token struct {
+    Type        int
+    Value       interface{}
+    Lexeme      []byte
+    TC          int
+    StartLine   int
+    StartColumn int
+    EndLine     int
+    EndColumn   int
+}
+```
+
+Here is an example for constructing a lexer Action which turns a machines.Match
+struct into a token using the scanners Token helper function.
+
+```go
+func token(name string, tokenIds map[string]int) lex.Action {
+    return func(s *lex.Scanner, m *machines.Match) (interface{}, error) {
+        return s.Token(tokenIds[name], string(m.Bytes), m), nil
+    }
+}
+```
+
+#### Adding Multiple Patterns
+
+When constructing a lexer for a complex computer language often tokens have
+patterns which overlap -- multiple patterns could match the same strings. To
+address this problem lexical analysis engines follow 2 rules when choosing which
+pattern to match:
+
+1. Pick the pattern which matches the longest prefix of unmatched text.
+2. Break ties by picking the pattern which appears earlier in the user supplied
+   list.
+
+For example, let's pretend we are writing a lexer for Python. Python has a bunch
+of keywords in it such as `class` and `def`. However, it also has identifiers
+which match the pattern `[A-Za-z_][A-Za-z0-9_]*`. That pattern also matches the
+keywords, if we were to define the lexer as:
+
+```go
+lexer.Add([]byte(`[A-Za-z_][A-Za-z0-9_]*`), token("ID"))
+lexer.Add([]byte(`class`), token("CLASS"))
+lexer.Add([]byte(`def`), token("DEF"))
+```
+
+Then, the keywords class and def would never be found because the ID token would
+take precedence. The correct way to solve this problem is by putting the
+keywords first:
+
+```go
+lexer.Add([]byte(`class`), token("CLASS"))
+lexer.Add([]byte(`def`), token("DEF"))
+lexer.Add([]byte(`[A-Za-z_][A-Za-z0-9_]*`), token("ID"))
+```
+
+#### Skipping Patterns
+
+Sometimes it is advantageous to not emit tokens for certain patterns and to
+instead skip them. Commonly this occurs for whitespace and comments. To skip a
+pattern simply have the action `return nil, nil`:
+
+```go
+lexer.Add(
+	[]byte("( |\t|\n)"),
+	func(scan *Scanner, match *machines.Match) (interface{}, error) {
+		// skip white space
+		return nil, nil
+	},
+)
+lexer.Add(
+	[]byte("//[^\n]*\n"),
+	func(scan *Scanner, match *machines.Match) (interface{}, error) {
+		// skip white space
+		return nil, nil
+	},
+)
+```
+
+#### Compiling the Lexer
+
+`lexmachine` uses the theory of finite state machines to efficiently tokenize
+text. So what is a finite state machine? A finite state machine is a
+mathematical construct which is made up of a set of states, with a labeled
+starting state, and accepting states. There is a transition function which moves
+from one state to another state based on an input character. In general, in
+lexing there are two usual types of state machines used: Non-deterministic and
+Deterministic.
+
+Before a lexer (like the ones described above) and be used it must be compiled
+into either a Non-deterministic Finite Automaton (NFA) or a Deterministic
+Finite Automaton (DFA). The difference between the two (from a practical
+perspective) is *construction time* and *match efficiency*.
+
+Construction time is the amount of time it takes to turn a set of regular
+expressions into a state machine (also called a finite state automaton). For an
+NFA it is O(`r`) which `r` is the length of the regular expression. However, for
+DFA it could be as bad as O(`2^r`) but in practical terms it is rarely worse
+than O(`r^3`). The DFA's in `lexmachine` are also automatically *minimized* which
+reduces the amount of memory they consume which takes O(`r*log(log(r))`) steps.
+
+However, construction time is an upfront cost. If your program is tokenizing
+multiple strings it is less important than match efficiency. Let's say a string
+has length `n`. An NFA can tokenize such a string in O(`n*r`) steps while a DFA
+can tokenize the string in O(`n`). For larger language `r` becomes a significant
+overhead.
+
+By default, `lexmachine` uses a DFA. To explicitly invoke compilation call
+`Compile`:
+
+```go
+err := lexer.Compile()
+if err != nil {
+	// handle err
+}
+```
+
+To explicitly compile a DFA (in case of changes to the default behavior of
+Compile):
+
+```go
+err := lexer.CompileDFA()
+if err != nil {
+	// handle err
+}
+```
+
+To explicitly compile a NFA:
+
+```go
+err := lexer.CompileNFA()
+if err != nil {
+	// handle err
+}
+```
+
+### Tokenizing a String
+
+To tokenize (lex) a string construct a `Scanner` object using the lexer. This
+will compile the lexer if it has not already been compiled.
+
+```go
+scanner, err := lexer.Scanner([]byte("some text to lex"))
+if err != nil {
+	// handle err
+}
+```
+
+The scanner object is an iterator which yields the next token (or error) by
+calling the `Next()` method:
+
+```go
+for tok, err, eos := scanner.Next(); !eos; tok, err, eos = scanner.Next() {
+	if ui, is := err.(*machines.UnconsumedInput); is {
+		// skip the error via:
+		// scanner.TC = ui.FailTC
+		//
+		return err
+	} else if err != nil {
+		return err
+	}
+    fmt.Println(tok)
+}
+```
+
+Let's break down that first line:
+
+```go
+for tok, err, eos := scanner.Next();
+```
+
+The `Next()` method returns three things, the token (`tok`) if there is one, an
+error (`err`) if there is one, and `eos` which is a boolean which indicates if
+the End Of String (EOS) has been reached.
+
+```go
+; !eos;
+```
+
+Iteration proceeds until the EOS has been reached.
+
+```go
+; tok, err, eos = scanner.Next() {
+```
+
+The update block calls `Next()` again to get the next token. In each iteration
+of the loop the first thing a client **must** do is check for an error.
+
+```go
+	if err != nil {
+		return err
+	}
+```
+
+This prevents an infinite loop on an unexpected character or other bad token. To
+skip bad tokens check to see if the `err` is a `*machines.UnconsumedInput`
+object and reset the scanners text counter (`scanner.TC`) to point to the end of
+the failed token.
+
+```go
+	if ui, is := err.(*machines.UnconsumedInput); is {
+		scanner.TC = ui.FailTC
+		continue
+	}
+```
+
+Finally, a client can make use of the token produced by the scanner (if there
+was no error:
+
+```go
+	fmt.Println(tok)
+```
+
+### Dealing with Non-regular Tokens
+
+`lexmachine` like most lexical analysis frameworks primarily deals with patterns
+which an be represented by regular expressions. However, sometimes a language
+has a token which is "non-regular." A pattern is non-regular if there is no
+regular expression (or finite automata) which can express the pattern. For
+instance, if you wanted to define a pattern which matches only consecutive
+balanced parenthesis: `()`, `()()()`, `((()()))()()`, ... You would quickly find
+there is no regular expression which can express this language. The reason is
+simple: finite automata cannot "count" or keep track of how many opening
+parenthesis it has seen.
+
+This problem arises in many programming languages when dealing with nested
+"c-style" comments. Supporting the nesting means solving the "balanced
+parenthesis" problem. Luckily, `lexmachine` provides an "escape-hatch" to deal
+with these situations in the `Action` functions. All actions receive a pointer
+to the `Scanner`. The scanner (as discussed above) has a public modifiable field
+called `TC` which stands for text counter. Any action can *modify* the text
+counter to point at the desired position it would like the scanner to resume
+scanning from.
+
+An example of using this feature for tokenizing nested "c-style" comments is
+below:
+
+```go
+lexer.Add(
+	[]byte("/\\*"),
+	func(scan *Scanner, match *machines.Match) (interface{}, error) {
+		for tc := scan.TC; tc < len(scan.Text); tc++ {
+			if scan.Text[tc] == '\\' {
+				// the next character is skipped
+				tc++
+			} else if scan.Text[tc] == '*' && tc+1 < len(scan.Text) {
+				if scan.Text[tc+1] == '/' {
+					// set the text counter to point to after the
+					// end of the comment. This will cause the
+					// scanner to resume after the comment instead
+					// of picking up in the middle.
+					scan.TC = tc + 2
+					// don't return a token to skip the comment
+					return nil, nil
+				}
+			}
+		}
+		return nil,
+			fmt.Errorf("unclosed comment starting at %d, (%d, %d)",
+				match.TC, match.StartLine, match.StartColumn)
+	},
+)
+```
 
 ## Regular Expressions
 
