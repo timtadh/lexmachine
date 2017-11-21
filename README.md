@@ -331,7 +331,7 @@ for tok, err, eos := scanner.Next(); !eos; tok, err, eos = scanner.Next() {
 	} else if err != nil {
 		return err
 	}
-    fmt.Println(tok)
+	fmt.Println(tok)
 }
 ```
 
