@@ -55,8 +55,6 @@ analysis system for Go.
 6.  A declarative "DSL" for specifying the lexers.
 7.  An "escape hatch" which allows one to match non-regular tokens by consuming
     any number of further bytes after the match.
-8.  A command `lexc` which compiles a sequence of patterns into an NFA. Mostly
-    written to support a homework assignment for the class.
 
 ## Narrative Documentation
 
