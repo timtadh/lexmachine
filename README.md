@@ -272,8 +272,8 @@ reduces the amount of memory they consume which takes O(`r*log(log(r))`) steps.
 However, construction time is an upfront cost. If your program is tokenizing
 multiple strings it is less important than match efficiency. Let's say a string
 has length `n`. An NFA can tokenize such a string in O(`n*r`) steps while a DFA
-can tokenize the string in O(`n`). For larger language `r` becomes a significant
-overhead.
+can tokenize the string in O(`n`). For larger languages `r` becomes a
+significant overhead.
 
 By default, `lexmachine` uses a DFA. To explicitly invoke compilation call
 `Compile`:
