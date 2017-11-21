@@ -231,12 +231,12 @@ func (l *Lexer) Add(regex []byte, action Action) {
 	l.patterns = append(l.patterns, &pattern{regex, action})
 }
 
-// Compile the supplied patterns to an NFA (default). You don't need to call
+// Compile the supplied patterns to an DFA (default). You don't need to call
 // this method (it is called automatically by Scanner). However, you may want to
 // call this method if you construct a lexer once and then use it many times as
 // it will precompile the lexing program.
 func (l *Lexer) Compile() error {
-	return l.CompileNFA()
+	return l.CompileDFA()
 }
 
 func (l *Lexer) assembleAST() (frontend.AST, error) {
