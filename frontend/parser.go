@@ -403,7 +403,9 @@ func (p *parser) builtInClass(i int) (int, AST, *ParseError) {
 func (p *parser) getByte(i int) (int, byte, *ParseError) {
 	i, err := p.match(i, '\\')
 	if err == nil {
-		if i < len(p.text) && p.text[i] == 'n' {
+		if i >= len(p.text) {
+			return len(p.text), p.text[len(p.text)-1], nil
+		} else if i < len(p.text) && p.text[i] == 'n' {
 			return i + 1, '\n', nil
 		} else if i < len(p.text) && p.text[i] == 'r' {
 			return i + 1, '\r', nil
