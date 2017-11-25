@@ -142,6 +142,7 @@ func makeDState(positions []int) *set.SortedSet {
 	return s
 }
 
+// String humanizes the DFA
 func (dfa *DFA) String() string {
 	lines := make([]string, 0, len(dfa.Trans))
 	lines = append(lines, fmt.Sprintf("start: %d", dfa.Start))
@@ -167,6 +168,8 @@ func (dfa *DFA) String() string {
 	return strings.Join(lines, "\n")
 }
 
+// Dotty translates the DFA into Graphviz source code suitable for visualization with
+// the `dot` command.
 func (dfa *DFA) Dotty() string {
 	lines := make([]string, 0, len(dfa.Trans))
 	lines = append(lines, "digraph DFA {")
