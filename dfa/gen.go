@@ -2,6 +2,7 @@ package dfa
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/timtadh/data-structures/hashtable"
@@ -158,11 +159,77 @@ func (dfa *DFA) String() string {
 			if to == 0 {
 				continue
 			}
-			t = append(t, fmt.Sprintf("%v->%v", string([]byte{byte(sym)}), to))
+			t = append(t, fmt.Sprintf("%q->%v", string([]byte{byte(sym)}), to))
 		}
 
 		lines = append(lines, fmt.Sprintf("%d %v", i, strings.Join(t, ", ")))
 	}
+	return strings.Join(lines, "\n")
+}
+
+func (dfa *DFA) Dotty() string {
+	lines := make([]string, 0, len(dfa.Trans))
+	lines = append(lines, "digraph DFA {")
+	lines = append(lines, "rankdir=LR")
+	lines = append(lines, "node [shape=circle]")
+	lines = append(lines, `start [shape="none", label=""]`)
+	lines = append(lines, fmt.Sprintf("start -> %d [label=start]", dfa.Start))
+	for i, matches := range dfa.Matches {
+		for _, m := range matches {
+			lines = append(lines, fmt.Sprintf(`%d [style=bold, xlabel="matches %d"]`, m, i))
+		}
+	}
+	quote := func(s string) string {
+		q := strconv.Quote(s)
+		return q[1 : len(q)-1]
+	}
+	for i, row := range dfa.Trans {
+		ranges := make(map[int][]string)
+		target := -1
+		beg := -1
+		for sym, to := range row {
+			if to != dfa.Error && target < 0 {
+				beg = sym
+				target = to
+			}
+			if to != target && target != -1 {
+				end := sym - 1
+				if beg == end {
+					ranges[target] = append(ranges[target],
+						quote(string([]byte{byte(beg)})))
+				} else {
+					ranges[target] = append(ranges[target],
+						quote(string([]byte{byte(beg)}))+"-"+
+							quote(string([]byte{byte(end)})))
+				}
+				if to == 0 {
+					target = -1
+					beg = -1
+				} else {
+					target = to
+					beg = sym
+				}
+			}
+		}
+		if target != -1 {
+			end := 255
+			if beg == end {
+				ranges[target] = append(ranges[target],
+					quote(string([]byte{byte(beg)})))
+			} else {
+				ranges[target] = append(ranges[target],
+					quote(string([]byte{byte(beg)}))+"-"+
+						quote(string([]byte{byte(end)})))
+			}
+		}
+		for to, trans := range ranges {
+			lines = append(lines,
+				fmt.Sprintf(
+					`%d -> %d [label=%q]`,
+					i, to, strings.Join(trans, " ")))
+		}
+	}
+	lines = append(lines, "}")
 	return strings.Join(lines, "\n")
 }
 
