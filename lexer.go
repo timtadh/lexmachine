@@ -55,7 +55,7 @@ func (t *Token) Equals(other *Token) bool {
 
 // String formats the token in a human readable form.
 func (t *Token) String() string {
-	return fmt.Sprintf("%d %v %d (%d, %d)-(%d, %d)", t.Type, t.Value, t.TC, t.StartLine, t.StartColumn, t.EndLine, t.EndColumn)
+	return fmt.Sprintf("%d %q %d (%d, %d)-(%d, %d)", t.Type, t.Value, t.TC, t.StartLine, t.StartColumn, t.EndLine, t.EndColumn)
 }
 
 // An Action is a function which get called when the Scanner finds a match
