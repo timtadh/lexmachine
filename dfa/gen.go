@@ -2,6 +2,7 @@ package dfa
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -179,7 +180,7 @@ func (dfa *DFA) Dotty() string {
 	lines = append(lines, fmt.Sprintf("start -> %d [label=start]", dfa.Start))
 	for i, matches := range dfa.Matches {
 		for _, m := range matches {
-			lines = append(lines, fmt.Sprintf(`%d [style=bold, xlabel="matches %d"]`, m, i))
+			lines = append(lines, fmt.Sprintf(`%d [style=bold, peripheries=2, xlabel="matches %d"]`, m, i))
 		}
 	}
 	quote := func(s string) string {
@@ -187,7 +188,7 @@ func (dfa *DFA) Dotty() string {
 		return q[1 : len(q)-1]
 	}
 	for i, row := range dfa.Trans {
-		ranges := make(map[int][]string)
+		ranges := make(map[int][]struct{ beg, end int })
 		target := -1
 		beg := -1
 		for sym, to := range row {
@@ -197,14 +198,7 @@ func (dfa *DFA) Dotty() string {
 			}
 			if to != target && target != -1 {
 				end := sym - 1
-				if beg == end {
-					ranges[target] = append(ranges[target],
-						quote(string([]byte{byte(beg)})))
-				} else {
-					ranges[target] = append(ranges[target],
-						quote(string([]byte{byte(beg)}))+"-"+
-							quote(string([]byte{byte(end)})))
-				}
+				ranges[target] = append(ranges[target], struct{ beg, end int }{beg, end})
 				if to == 0 {
 					target = -1
 					beg = -1
@@ -216,20 +210,40 @@ func (dfa *DFA) Dotty() string {
 		}
 		if target != -1 {
 			end := 255
-			if beg == end {
-				ranges[target] = append(ranges[target],
-					quote(string([]byte{byte(beg)})))
-			} else {
-				ranges[target] = append(ranges[target],
-					quote(string([]byte{byte(beg)}))+"-"+
-						quote(string([]byte{byte(end)})))
-			}
+			ranges[target] = append(ranges[target], struct{ beg, end int }{beg, end})
 		}
 		for to, trans := range ranges {
+			sort.Slice(trans, func(i, j int) bool {
+				x := byte(trans[i].beg)
+				y := byte(trans[j].beg)
+				if 'a' <= x && x <= 'z' && (('A' <= y && y <= 'Z') || ('0' <= y && y <= '9' || y == '_')) {
+					return true
+				}
+				if 'A' <= x && x <= 'Z' && '0' <= y && y <= '9' {
+					return true
+				}
+				if 'a' <= y && y <= 'z' && (('A' <= x && x <= 'Z') || ('0' <= x && x <= '9' || x == '_')) {
+					return false
+				}
+				if 'A' <= y && y <= 'Z' && '0' <= x && x <= '9' {
+					return false
+				}
+				return x < y
+			})
+			parts := make([]string, 0, len(trans))
+			for _, t := range trans {
+				if t.beg == t.end {
+					parts = append(parts, quote(string([]byte{byte(t.beg)})))
+				} else {
+					parts = append(parts,
+						quote(string([]byte{byte(t.beg)}))+"-"+
+							quote(string([]byte{byte(t.end)})))
+				}
+			}
 			lines = append(lines,
 				fmt.Sprintf(
 					`%d -> %d [label=%q]`,
-					i, to, strings.Join(trans, " ")))
+					i, to, strings.Join(parts, "")))
 		}
 	}
 	lines = append(lines, "}")
