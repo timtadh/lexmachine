@@ -36,6 +36,7 @@ analysis system for Go.
 ## Documentation
 
 -   [Tutorial](http://hackthology.com/writing-a-lexer-in-go-with-lexmachine.html)
+-   [How It Works](http://hackthology.com/faster-tokenization-with-a-dfa-backend-for-lexmachine.html)
 -   [Narrative Documentation](#narrative-documentation)
 -   [![GoDoc](https://godoc.org/github.com/timtadh/lexmachine?status.svg)](https://godoc.org/github.com/timtadh/lexmachine)
 
@@ -249,18 +250,21 @@ lexer.Add(
 
 #### Compiling the Lexer
 
-`lexmachine` uses the theory of finite state machines to efficiently tokenize
-text. So what is a finite state machine? A finite state machine is a
-mathematical construct which is made up of a set of states, with a labeled
-starting state, and accepting states. There is a transition function which moves
-from one state to another state based on an input character. In general, in
-lexing there are two usual types of state machines used: Non-deterministic and
-Deterministic.
+`lexmachine` uses the theory of [finite state
+machines](http://hackthology.com/faster-tokenization-with-a-dfa-backend-for-lexmachine.html)
+to efficiently tokenize text. So what is a finite state machine? A finite state
+machine is a mathematical construct which is made up of a set of states, with a
+labeled starting state, and accepting states. There is a transition function
+which moves from one state to another state based on an input character. In
+general, in lexing there are two usual types of state machines used:
+Non-deterministic and Deterministic.
 
 Before a lexer (like the ones described above) and be used it must be compiled
-into either a Non-deterministic Finite Automaton (NFA) or a Deterministic
-Finite Automaton (DFA). The difference between the two (from a practical
-perspective) is *construction time* and *match efficiency*.
+into either a Non-deterministic Finite Automaton (NFA) or a [Deterministic
+Finite Automaton
+(DFA)](http://hackthology.com/faster-tokenization-with-a-dfa-backend-for-lexmachine.html).
+The difference between the two (from a practical perspective) is *construction
+time* and *match efficiency*.
 
 Construction time is the amount of time it takes to turn a set of regular
 expressions into a state machine (also called a finite state automaton). For an
