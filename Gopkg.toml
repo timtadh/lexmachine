@@ -14,4 +14,4 @@ ignored = []
 ## dep whether coming from the Gopkg.toml of the current project or a dependency.
 [[constraint]]
 name = "github.com/timtadh/data-structures"
-version = ">=0.5.1"
+version = ">=0.5.2"
