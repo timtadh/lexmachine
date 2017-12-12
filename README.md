@@ -388,7 +388,7 @@ was no error:
 ### Dealing with Non-regular Tokens
 
 `lexmachine` like most lexical analysis frameworks primarily deals with patterns
-which an be represented by regular expressions. However, sometimes a language
+which are represented by regular expressions. However, sometimes a language
 has a token which is "non-regular." A pattern is non-regular if there is no
 regular expression (or finite automata) which can express the pattern. For
 instance, if you wanted to define a pattern which matches only consecutive
