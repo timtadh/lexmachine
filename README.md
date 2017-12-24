@@ -160,7 +160,7 @@ Then adding patterns for our 3 tokens is concise:
 
 ```go
 lexer.Add([]byte(`[Ww][Ii][Ll][Dd]`), token("WILD"))
-lexer.Add([]byte(` \t\n\r`), token("SPACE"))
+lexer.Add([]byte(` `), token("SPACE"))
 lexer.Add([]byte(`!`), token("BANG"))
 ```
 
