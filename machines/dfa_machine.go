@@ -1,7 +1,5 @@
 package machines
 
-import "fmt"
-
 // DFATrans represents a Deterministic Finite Automatons state transition table
 type DFATrans [][256]int
 
@@ -57,7 +55,6 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 		}
 		state := startState
 		for ; tc < len(text) && state != errorState; tc++ {
-			fmt.Println("tc", tc, text[tc])
 			if match, has := accepting[state]; has {
 				matchID = match
 				matchTC = tc
