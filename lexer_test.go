@@ -252,3 +252,43 @@ func TestPartialLexer(x *testing.T) {
 	t.AssertNil(lexer.CompileDFA())
 	scan(lexer)
 }
+
+func TestRegression(t *testing.T) {
+	skip := func(*Scanner, *machines.Match) (interface{}, error) {
+		return nil, nil
+	}
+	token := func(id int, name string) Action {
+		return func(s *Scanner, m *machines.Match) (interface{}, error) {
+			return string(m.Bytes), nil
+		}
+	}
+
+	data := "true" // This input fails.
+	// data := "true " // this with a trailing space does not.
+
+	lexer := NewLexer()
+	lexer.Add([]byte("true"), token(0, "TRUE"))
+	lexer.Add([]byte("( |\t|\n|\r)+"), skip)
+
+	if err := lexer.CompileDFA(); err != nil {
+		t.Fatal(err)
+	}
+
+	var scanner *Scanner
+
+	scanner, err := lexer.Scanner([]byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	found := 0
+	tok, err, eos := scanner.Next()
+	for ; !eos; tok, err, eos = scanner.Next() {
+		fmt.Printf("Token: %v\n", tok)
+		found++
+	}
+	if found != 1 {
+		t.Errorf("Expected exactly 1 tokens got %v, ===\nErr: %v\nEOS: %v\nTC: %d\n", found, err, eos, scanner.TC)
+
+	}
+}
