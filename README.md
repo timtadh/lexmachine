@@ -113,7 +113,7 @@ for i, tok := range Tokens {
 }
 ```
 
-Now that we have defined a set of three tokens (WILD, SPACE, BANG), lets create
+Now that we have defined a set of three tokens (WILD, SPACE, BANG), let's create
 a token object:
 
 ```go
@@ -440,7 +440,7 @@ lexer.Add(
 
 Lexmachine (like most lexical analysis frameworks) uses [Regular
 Expressions](https://en.wikipedia.org/wiki/Regular_expression) to specify the
-*patterns* to match when spitting the string up into categorized *tokens.* 
+*patterns* to match when splitting the string up into categorized *tokens.*
 For a more advanced introduction to regular expressions engines see Russ Cox's
 [articles](https://swtch.com/~rsc/regexp/). To learn more about how regular
 expressions are used to *tokenize* string take a look at Alex Aiken's [video
@@ -453,7 +453,7 @@ up of *characters* such as `a` or `b`, characters with special meanings (such as
 `.` which matches any character), and operators. The regular expression `abc`
 matches exactly one string `abc`.
 
-### Charater Expressions
+### Character Expressions
 
 In lexmachine most characters (eg. `a`, `b` or `#`) represent themselves. Some
 have special meanings (as detailed below in operators). However, all characters
