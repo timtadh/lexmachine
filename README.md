@@ -392,10 +392,10 @@ which are represented by regular expressions. However, sometimes a language
 has a token which is "non-regular." A pattern is non-regular if there is no
 regular expression (or finite automata) which can express the pattern. For
 instance, if you wanted to define a pattern which matches only consecutive
-balanced parenthesis: `()`, `()()()`, `((()()))()()`, ... You would quickly find
+balanced parentheses: `()`, `()()()`, `((()()))()()`, ... You would quickly find
 there is no regular expression which can express this language. The reason is
 simple: finite automata cannot "count" or keep track of how many opening
-parenthesis it has seen.
+parentheses it has seen.
 
 This problem arises in many programming languages when dealing with nested
 "c-style" comments. Supporting the nesting means solving the "balanced
@@ -467,7 +467,7 @@ can be represented by prefixing the character with a `\`.
 
 1. `\` use `\\` to match
 2. newline use `\n` to match
-3. cariage return use `\r` to match
+3. carriage return use `\r` to match
 4. tab use `\t` to match
 5. `.` use `\.` to match
 6. operators: {`|`, `+`, `*`, `?`, `(`, `)`, `[`, `]`, `^`} prefix with a `\` to
@@ -476,7 +476,7 @@ can be represented by prefixing the character with a `\`.
 #### Character Classes
 
 Sometimes it is advantages to match a variety of characters. For instance, if
-you want to ignore captilization for the work `Capitol` you could write the
+you want to ignore capitalization for the work `Capitol` you could write the
 expression `[Cc]apitol` which would match both `Capitol` or `capitol`. There are
 two forms of character ranges:
 
@@ -577,7 +577,7 @@ CharClassItem -> BYTE
               -> BYTE `-` BYTE
 
 CHAR -> matches any character expect '|', '+', '*', '?', '(', ')', '[', ']', '^'
-        unless escaped. Additionally '.' is returned a as the wildcard character
+        unless escaped. Additionally '.' is returned as the wildcard character
         which matches any character. Built-in character classes are also handled
         here.
 
