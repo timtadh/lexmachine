@@ -79,6 +79,19 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 		if match, has := accepting[state]; has {
 			matchID = match
 			matchTC = tc
+			startLC := lineCols[startTC]
+			endLC := lineCols[matchTC-1]
+			match := &Match{
+				PC:          matchID,
+				TC:          startTC,
+				StartLine:   startLC.line,
+				StartColumn: startLC.col,
+				EndLine:     endLC.line,
+				EndColumn:   endLC.col,
+				Bytes:       text[startTC:matchTC],
+			}
+			matchID = -1
+			return tc, match, nil, scan
 		}
 		if matchTC != len(text) && startTC >= len(text) {
 			// the user has moved us farther than the text. Assume that was
