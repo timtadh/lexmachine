@@ -113,7 +113,7 @@ for i, tok := range Tokens {
 }
 ```
 
-Now that we have defined a set of three tokens (WILD, SPACE, BANG), lets create
+Now that we have defined a set of three tokens (WILD, SPACE, BANG), let's create
 a token object:
 
 ```go
@@ -392,10 +392,10 @@ which are represented by regular expressions. However, sometimes a language
 has a token which is "non-regular." A pattern is non-regular if there is no
 regular expression (or finite automata) which can express the pattern. For
 instance, if you wanted to define a pattern which matches only consecutive
-balanced parenthesis: `()`, `()()()`, `((()()))()()`, ... You would quickly find
+balanced parentheses: `()`, `()()()`, `((()()))()()`, ... You would quickly find
 there is no regular expression which can express this language. The reason is
 simple: finite automata cannot "count" or keep track of how many opening
-parenthesis it has seen.
+parentheses it has seen.
 
 This problem arises in many programming languages when dealing with nested
 "c-style" comments. Supporting the nesting means solving the "balanced
@@ -440,7 +440,7 @@ lexer.Add(
 
 Lexmachine (like most lexical analysis frameworks) uses [Regular
 Expressions](https://en.wikipedia.org/wiki/Regular_expression) to specify the
-*patterns* to match when spitting the string up into categorized *tokens.* 
+*patterns* to match when splitting the string up into categorized *tokens.*
 For a more advanced introduction to regular expressions engines see Russ Cox's
 [articles](https://swtch.com/~rsc/regexp/). To learn more about how regular
 expressions are used to *tokenize* string take a look at Alex Aiken's [video
@@ -453,7 +453,7 @@ up of *characters* such as `a` or `b`, characters with special meanings (such as
 `.` which matches any character), and operators. The regular expression `abc`
 matches exactly one string `abc`.
 
-### Charater Expressions
+### Character Expressions
 
 In lexmachine most characters (eg. `a`, `b` or `#`) represent themselves. Some
 have special meanings (as detailed below in operators). However, all characters
@@ -467,7 +467,7 @@ can be represented by prefixing the character with a `\`.
 
 1. `\` use `\\` to match
 2. newline use `\n` to match
-3. cariage return use `\r` to match
+3. carriage return use `\r` to match
 4. tab use `\t` to match
 5. `.` use `\.` to match
 6. operators: {`|`, `+`, `*`, `?`, `(`, `)`, `[`, `]`, `^`} prefix with a `\` to
@@ -476,7 +476,7 @@ can be represented by prefixing the character with a `\`.
 #### Character Classes
 
 Sometimes it is advantages to match a variety of characters. For instance, if
-you want to ignore captilization for the work `Capitol` you could write the
+you want to ignore capitalization for the work `Capitol` you could write the
 expression `[Cc]apitol` which would match both `Capitol` or `capitol`. There are
 two forms of character ranges:
 
@@ -577,7 +577,7 @@ CharClassItem -> BYTE
               -> BYTE `-` BYTE
 
 CHAR -> matches any character expect '|', '+', '*', '?', '(', ')', '[', ']', '^'
-        unless escaped. Additionally '.' is returned a as the wildcard character
+        unless escaped. Additionally '.' is returned as the wildcard character
         which matches any character. Built-in character classes are also handled
         here.
 
