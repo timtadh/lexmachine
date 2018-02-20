@@ -3,6 +3,7 @@ package lexmachine
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/timtadh/data-structures/test"
@@ -290,5 +291,92 @@ func TestRegression(t *testing.T) {
 	if found != 1 {
 		t.Errorf("Expected exactly 1 tokens got %v, ===\nErr: %v\nEOS: %v\nTC: %d\n", found, err, eos, scanner.TC)
 
+	}
+}
+
+func TestRegression2(t *testing.T) {
+
+	text := `# dhcpd.conf
+#
+# Sample configuration file for ISC dhcpd
+#
+
+# option definitions common to all supported networks...
+option domain-name "example.org";
+option domain-name-servers ns1.example.org, ns2.example.org;
+
+default-lease-time 600;
+max-lease-time 7200;
+
+# The ddns-updates-style parameter controls whether or not the server will
+# attempt to do a DNS update when a lease is confirmed. We default to the
+# behavior of the version 2 packages ('none', since DHCP v2 didn't
+# have support for DDNS.)
+ddns-update-style none;
+
+# If this DHCP server is the official DHCP server for the local
+# network, the authoritative directive should be uncommented.
+#authoritative;
+`
+
+	literals := []string{
+		"{",
+		"}",
+		";",
+		",",
+	}
+	tokens := []string{
+		"COMMENT",
+		"ID",
+	}
+	tokens = append(tokens, literals...)
+	tokenIds := map[string]int{}
+	for i, tok := range tokens {
+		tokenIds[tok] = i
+	}
+	newLexer := func() *Lexer {
+		lex := NewLexer()
+
+		skip := func(*Scanner, *machines.Match) (interface{}, error) {
+			return nil, nil
+		}
+		token := func(name string) Action {
+			return func(s *Scanner, m *machines.Match) (interface{}, error) {
+				return s.Token(tokenIds[name], string(m.Bytes), m), nil
+			}
+		}
+
+		lex.Add([]byte(`#[^\n]*\n?`), token("COMMENT"))
+		lex.Add([]byte(`([a-z]|[A-Z]|[0-9]|_|\-|\.)*`), token("ID"))
+		lex.Add([]byte(`"([^\\"]|(\\.))*"`), token("ID"))
+		lex.Add([]byte("[\n \t]"), skip)
+		for _, lit := range literals {
+			lex.Add([]byte(lit), token(lit))
+		}
+
+		err := lex.Compile()
+		if err != nil {
+			panic(err)
+		}
+
+		return lex
+	}
+
+	scanner, err := newLexer().Scanner([]byte(text))
+	if err != nil {
+		return
+	}
+	for tok, err, eof := scanner.Next(); !eof; tok, err, eof = scanner.Next() {
+		if err != nil {
+			t.Error(err)
+		}
+		token := tok.(*Token)
+		fmt.Printf("%-7v | %-10v | %v:%v-%v:%v\n",
+			tokens[token.Type],
+			strings.TrimSpace(string(token.Lexeme)),
+			token.StartLine,
+			token.StartColumn,
+			token.EndLine,
+			token.EndColumn)
 	}
 }
