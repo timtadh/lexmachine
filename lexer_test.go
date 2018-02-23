@@ -387,6 +387,7 @@ func TestPythonStrings(t *testing.T) {
 		"TRUE",
 		"SINGLE_STRING",
 		"TRIPLE_STRING",
+		"TY_STRING",
 	}
 	tokenIds := map[string]int{}
 	for i, tok := range tokens {
@@ -409,23 +410,28 @@ func TestPythonStrings(t *testing.T) {
 	lexer.Add([]byte(`'([^\\']|(\\.))*'`), token("SINGLE_STRING"))
 	lexer.Add([]byte("( |\t|\n|\r)+"), skip)
 
-	texts := []string{
-		`'''hi'''`,
-		`"""hi"""`,
-		`"hi"`,
-		`'hi'`,
-		`''`,
-		`""`,
-		`''''''`,
-		`""""""`,
+	tests := []struct {
+		text   string
+		tokens int
+	}{
+		{`'''hi'''`, 1},
+		{`"""hi"""`, 1},
+		{`"hi"`, 1},
+		{`'hi'`, 1},
+		{`''`, 1},
+		{`""`, 1},
+		{`''''''`, 1},
+		{`""""""`, 1},
+		{`"""""" """
+		hi there""" "wizard" true`, 4},
 	}
 
 	if err := lexer.CompileDFA(); err != nil {
 		t.Fatal(err)
 	}
 
-	for _, text := range texts {
-		scanner, err := lexer.Scanner([]byte(text))
+	for _, test := range tests {
+		scanner, err := lexer.Scanner([]byte(test.text))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -433,9 +439,24 @@ func TestPythonStrings(t *testing.T) {
 		found := 0
 		tok, err, eos := scanner.Next()
 		for ; !eos; tok, err, eos = scanner.Next() {
-			fmt.Printf("Token: %v\n", tok)
-			found++
+			if err != nil {
+				t.Error(err)
+				fmt.Printf("err: %v\n", err)
+				scanner.TC++
+			} else {
+				token := tok.(*Token)
+				fmt.Printf("%-15v | %-30q | %v:%v-%v:%v\n",
+					tokens[token.Type],
+					strings.TrimSpace(string(token.Lexeme)),
+					token.StartLine,
+					token.StartColumn,
+					token.EndLine,
+					token.EndColumn)
+				found++
+			}
 		}
-		fmt.Println("found", found)
+		if found != test.tokens {
+			t.Errorf("expected %v tokens got %v", test.tokens, found)
+		}
 	}
 }
