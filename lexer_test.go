@@ -380,3 +380,62 @@ ddns-update-style none;
 			token.EndColumn)
 	}
 }
+
+func TestPythonStrings(t *testing.T) {
+	tokens := []string{
+		"UNDEF",
+		"TRUE",
+		"SINGLE_STRING",
+		"TRIPLE_STRING",
+	}
+	tokenIds := map[string]int{}
+	for i, tok := range tokens {
+		tokenIds[tok] = i
+	}
+	skip := func(*Scanner, *machines.Match) (interface{}, error) {
+		return nil, nil
+	}
+	token := func(name string) Action {
+		return func(s *Scanner, m *machines.Match) (interface{}, error) {
+			return s.Token(tokenIds[name], string(m.Bytes), m), nil
+		}
+	}
+
+	lexer := NewLexer()
+	lexer.Add([]byte("true"), token("TRUE"))
+	lexer.Add([]byte(`'''([^\\']|(\\.))*'''`), token("TRIPLE_STRING"))
+	lexer.Add([]byte(`"""([^\\"]|(\\.))*"""`), token("TRIPLE_STRING"))
+	lexer.Add([]byte(`"([^\\"]|(\\.))*"`), token("SINGLE_STRING"))
+	lexer.Add([]byte(`'([^\\']|(\\.))*'`), token("SINGLE_STRING"))
+	lexer.Add([]byte("( |\t|\n|\r)+"), skip)
+
+	texts := []string{
+		`'''hi'''`,
+		`"""hi"""`,
+		`"hi"`,
+		`'hi'`,
+		`''`,
+		`""`,
+		`''''''`,
+		`""""""`,
+	}
+
+	if err := lexer.CompileDFA(); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, text := range texts {
+		scanner, err := lexer.Scanner([]byte(text))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		found := 0
+		tok, err, eos := scanner.Next()
+		for ; !eos; tok, err, eos = scanner.Next() {
+			fmt.Printf("Token: %v\n", tok)
+			found++
+		}
+		fmt.Println("found", found)
+	}
+}
