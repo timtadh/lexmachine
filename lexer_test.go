@@ -285,6 +285,9 @@ func TestRegression(t *testing.T) {
 	found := 0
 	tok, err, eos := scanner.Next()
 	for ; !eos; tok, err, eos = scanner.Next() {
+		if err != nil {
+			t.Fatal(err)
+		}
 		fmt.Printf("Token: %v\n", tok)
 		found++
 	}
@@ -368,7 +371,8 @@ ddns-update-style none;
 	}
 	for tok, err, eof := scanner.Next(); !eof; tok, err, eof = scanner.Next() {
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
+			break
 		}
 		token := tok.(*Token)
 		fmt.Printf("%-7v | %-10v | %v:%v-%v:%v\n",
@@ -387,7 +391,9 @@ func TestPythonStrings(t *testing.T) {
 		"TRUE",
 		"SINGLE_STRING",
 		"TRIPLE_STRING",
+		"TRIPLE_STRING2",
 		"TY_STRING",
+		"SPACE",
 	}
 	tokenIds := map[string]int{}
 	for i, tok := range tokens {
@@ -421,8 +427,9 @@ func TestPythonStrings(t *testing.T) {
 		{`''`, 1},
 		{`""`, 1},
 		{`"""  .  .
-			hello 
+			hello
 		"""`, 1},
+		{`'''' ''''`, 4},
 		{`''''''`, 1},
 		{`""""""`, 1},
 		{`"""""" """
@@ -448,9 +455,11 @@ func TestPythonStrings(t *testing.T) {
 				scanner.TC++
 			} else {
 				token := tok.(*Token)
-				fmt.Printf("%-15v | %-30q | %v:%v-%v:%v\n",
+				fmt.Printf("%-15v | %-30q | %d-%d | %v:%v-%v:%v\n",
 					tokens[token.Type],
 					strings.TrimSpace(string(token.Lexeme)),
+					token.TC,
+					token.TC+len(token.Lexeme),
 					token.StartLine,
 					token.StartColumn,
 					token.EndLine,
