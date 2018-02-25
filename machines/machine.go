@@ -195,7 +195,11 @@ func LexerEngine(program inst.Slice, text []byte) Scanner {
 				}
 				prevTC = startTC
 				matchPC = -1
-				return tc, match, nil, scan
+				if matchTC == startTC {
+					// ensure progress
+					return matchTC + 1, match, nil, scan
+				}
+				return matchTC, match, nil, scan
 			}
 		}
 		if matchTC != len(text) && startTC >= len(text) {

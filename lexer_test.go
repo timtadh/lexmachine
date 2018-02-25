@@ -408,13 +408,16 @@ func TestPythonStrings(t *testing.T) {
 		}
 	}
 
-	lexer := NewLexer()
-	lexer.Add([]byte("true"), token("TRUE"))
-	lexer.Add([]byte(`'''([^\\']|(\\.))*'''`), token("TRIPLE_STRING"))
-	lexer.Add([]byte(`"""([^\\"]|(\\.))*"""`), token("TRIPLE_STRING"))
-	lexer.Add([]byte(`"([^\\"]|(\\.))*"`), token("SINGLE_STRING"))
-	lexer.Add([]byte(`'([^\\']|(\\.))*'`), token("SINGLE_STRING"))
-	lexer.Add([]byte("( |\t|\n|\r)+"), skip)
+	newLexer := func() *Lexer {
+		lexer := NewLexer()
+		lexer.Add([]byte("true"), token("TRUE"))
+		lexer.Add([]byte(`'''([^\\']|(\\.))*'''`), token("TRIPLE_STRING"))
+		lexer.Add([]byte(`"""([^\\"]|(\\.))*"""`), token("TRIPLE_STRING"))
+		lexer.Add([]byte(`"([^\\"]|(\\.))*"`), token("SINGLE_STRING"))
+		lexer.Add([]byte(`'([^\\']|(\\.))*'`), token("SINGLE_STRING"))
+		lexer.Add([]byte("( |\t|\n|\r)+"), skip)
+		return lexer
+	}
 
 	tests := []struct {
 		text   string
@@ -436,39 +439,53 @@ func TestPythonStrings(t *testing.T) {
 		hi there""" "wizard" true`, 4},
 	}
 
-	if err := lexer.CompileDFA(); err != nil {
-		t.Fatal(err)
-	}
-
-	for _, test := range tests {
-		scanner, err := lexer.Scanner([]byte(test.text))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		found := 0
-		tok, err, eos := scanner.Next()
-		for ; !eos; tok, err, eos = scanner.Next() {
+	runTest := func(lexer *Lexer) {
+		for _, test := range tests {
+			fmt.Printf("test %q\n", test.text)
+			scanner, err := lexer.Scanner([]byte(test.text))
 			if err != nil {
-				t.Error(err)
-				fmt.Printf("err: %v\n", err)
-				scanner.TC++
-			} else {
-				token := tok.(*Token)
-				fmt.Printf("%-15v | %-30q | %d-%d | %v:%v-%v:%v\n",
-					tokens[token.Type],
-					strings.TrimSpace(string(token.Lexeme)),
-					token.TC,
-					token.TC+len(token.Lexeme),
-					token.StartLine,
-					token.StartColumn,
-					token.EndLine,
-					token.EndColumn)
-				found++
+				t.Fatal(err)
+			}
+
+			found := 0
+			tok, err, eos := scanner.Next()
+			for ; !eos; tok, err, eos = scanner.Next() {
+				if err != nil {
+					t.Error(err)
+					fmt.Printf("err: %v\n", err)
+					scanner.TC++
+				} else {
+					token := tok.(*Token)
+					fmt.Printf("%-15v | %-30q | %d-%d | %v:%v-%v:%v\n",
+						tokens[token.Type],
+						strings.TrimSpace(string(token.Lexeme)),
+						token.TC,
+						token.TC+len(token.Lexeme),
+						token.StartLine,
+						token.StartColumn,
+						token.EndLine,
+						token.EndColumn)
+					found++
+				}
+			}
+			if found != test.tokens {
+				t.Errorf("expected %v tokens got %v: %q", test.tokens, found, test.text)
 			}
 		}
-		if found != test.tokens {
-			t.Errorf("expected %v tokens got %v", test.tokens, found)
-		}
 	}
+	{
+		lexer := newLexer()
+		if err := lexer.CompileNFA(); err != nil {
+			t.Fatal(err)
+		}
+		runTest(lexer)
+	}
+	{
+		lexer := newLexer()
+		if err := lexer.CompileDFA(); err != nil {
+			t.Fatal(err)
+		}
+		runTest(lexer)
+	}
+
 }
