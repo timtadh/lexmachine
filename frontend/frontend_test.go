@@ -101,7 +101,7 @@ func TestParseConcatAltMaybes(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	tMatch(program, "", t)
+	tNoMatch(program, "", t) // will get empty string error
 	tMatch(program, "E", t)
 	tMatch(program, "D", t)
 	tMatch(program, "A", t)
@@ -209,7 +209,7 @@ func TestParseConcatAltStar(x *testing.T) {
 		t.Error(err)
 	}
 	t.Log(program)
-	tMatch(program, "", t)
+	tNoMatch(program, "", t) // will get empty string error
 	tMatch(program, "X", t)
 	tMatch(program, "Y", t)
 	tMatch(program, "A", t)

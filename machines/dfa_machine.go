@@ -74,8 +74,13 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 				}
 				matchID = -1
 				if matchTC == startTC {
-					// ensures progress
-					return matchTC + 1, match, nil, scan
+					err := &EmptyMatchError{
+						MatchID: matchID,
+						TC:      tc,
+						Line:    startLC.line,
+						Column:  startLC.col,
+					}
+					return startTC, nil, err, scan
 				}
 				return matchTC, match, nil, scan
 			}
@@ -98,8 +103,13 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 			}
 			matchID = -1
 			if matchTC == startTC {
-				// ensures progress
-				return matchTC + 1, match, nil, scan
+				err := &EmptyMatchError{
+					MatchID: matchID,
+					TC:      tc,
+					Line:    startLC.line,
+					Column:  startLC.col,
+				}
+				return startTC, nil, err, scan
 			}
 			return matchTC, match, nil, scan
 		}
