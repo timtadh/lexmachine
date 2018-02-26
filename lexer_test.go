@@ -513,5 +513,26 @@ func TestPythonStrings(t *testing.T) {
 		}
 		runTest(lexer)
 	}
+}
 
+func TestNoEmptyStrings(t *testing.T) {
+	skip := func(*Scanner, *machines.Match) (interface{}, error) {
+		return nil, nil
+	}
+	lexer := NewLexer()
+	lexer.Add([]byte("(ab|a)*"), skip)
+	{
+		if err := lexer.CompileNFA(); err == nil {
+			t.Fatal("expected error")
+		} else {
+			t.Logf("got expected error: %v", err)
+		}
+	}
+	{
+		if err := lexer.CompileDFA(); err == nil {
+			t.Fatal("expected error")
+		} else {
+			t.Logf("got expected error: %v", err)
+		}
+	}
 }

@@ -287,6 +287,8 @@ func (l *Lexer) CompileNFA() error {
 	if mes, err := l.matchesEmptyString(); err != nil {
 		return err
 	} else if mes {
+		l.program = nil
+		l.nfaMatches = nil
 		return fmt.Errorf("One or more of the supplied patterns match the empty string")
 	}
 
@@ -315,6 +317,8 @@ func (l *Lexer) CompileDFA() error {
 	if mes, err := l.matchesEmptyString(); err != nil {
 		return err
 	} else if mes {
+		l.dfa = nil
+		l.dfaMatches = nil
 		return fmt.Errorf("One or more of the supplied patterns match the empty string")
 	}
 	return nil
