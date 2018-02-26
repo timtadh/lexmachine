@@ -283,6 +283,13 @@ func (l *Lexer) CompileNFA() error {
 			ast++
 		}
 	}
+
+	if mes, err := l.matchesEmptyString(); err != nil {
+		return err
+	} else if mes {
+		return fmt.Errorf("One or more of the supplied patterns match the empty string")
+	}
+
 	return nil
 }
 
@@ -305,5 +312,22 @@ func (l *Lexer) CompileDFA() error {
 	for mid := range dfa.Matches {
 		l.dfaMatches[mid] = mid
 	}
+	if mes, err := l.matchesEmptyString(); err != nil {
+		return err
+	} else if mes {
+		return fmt.Errorf("One or more of the supplied patterns match the empty string")
+	}
 	return nil
+}
+
+func (l *Lexer) matchesEmptyString() (bool, error) {
+	s, err := l.Scanner([]byte(""))
+	if err != nil {
+		return false, err
+	}
+	_, err, _ = s.Next()
+	if ese, is := err.(*machines.EmptyMatchError); ese != nil && is {
+		return true, nil
+	}
+	return false, nil
 }

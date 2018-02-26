@@ -366,7 +366,7 @@ ddns-update-style none;
 		}
 
 		lex.Add([]byte(`#[^\n]*\n?`), token("COMMENT"))
-		lex.Add([]byte(`([a-z]|[A-Z]|[0-9]|_|\-|\.)*`), token("ID"))
+		lex.Add([]byte(`([a-z]|[A-Z]|[0-9]|_|\-|\.)+`), token("ID"))
 		lex.Add([]byte(`"([^\\"]|(\\.))*"`), token("ID"))
 		lex.Add([]byte("[\n \t]"), skip)
 		for _, lit := range literals {
