@@ -73,12 +73,23 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 					Bytes:       text[startTC:matchTC],
 				}
 				matchID = -1
-				return tc, match, nil, scan
+				if matchTC == startTC {
+					err := &EmptyMatchError{
+						MatchID: matchID,
+						TC:      tc,
+						Line:    startLC.line,
+						Column:  startLC.col,
+					}
+					return startTC, nil, err, scan
+				}
+				return matchTC, match, nil, scan
 			}
 		}
-		if match, has := accepting[state]; has && startTC < len(text) {
+		if match, has := accepting[state]; has {
 			matchID = match
 			matchTC = tc
+		}
+		if startTC < len(text) && matchTC <= len(text) && matchID > -1 {
 			startLC := lineCols[startTC]
 			endLC := lineCols[matchTC-1]
 			match := &Match{
@@ -91,7 +102,16 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 				Bytes:       text[startTC:matchTC],
 			}
 			matchID = -1
-			return tc, match, nil, scan
+			if matchTC == startTC {
+				err := &EmptyMatchError{
+					MatchID: matchID,
+					TC:      tc,
+					Line:    startLC.line,
+					Column:  startLC.col,
+				}
+				return startTC, nil, err, scan
+			}
+			return matchTC, match, nil, scan
 		}
 		if matchTC != len(text) && startTC >= len(text) {
 			// the user has moved us farther than the text. Assume that was

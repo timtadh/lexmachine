@@ -11,6 +11,21 @@ import (
 	"github.com/timtadh/lexmachine/queue"
 )
 
+// EmptyMatchError is returned when a pattern would have matched the empty
+// string
+type EmptyMatchError struct {
+	TC      int
+	Line    int
+	Column  int
+	MatchID int
+}
+
+func (e *EmptyMatchError) Error() string {
+	return fmt.Sprintf("Lexer error: matched the empty string at %d:%d (tc=%d) for match id %d.",
+		e.Line, e.Column, e.TC, e.MatchID,
+	)
+}
+
 // UnconsumedInput error type
 type UnconsumedInput struct {
 	StartTC     int
@@ -195,7 +210,16 @@ func LexerEngine(program inst.Slice, text []byte) Scanner {
 				}
 				prevTC = startTC
 				matchPC = -1
-				return tc, match, nil, scan
+				if matchTC == startTC {
+					err := &EmptyMatchError{
+						MatchID: matchPC,
+						TC:      tc,
+						Line:    line,
+						Column:  col,
+					}
+					return startTC, nil, err, scan
+				}
+				return matchTC, match, nil, scan
 			}
 		}
 		if matchTC != len(text) && startTC >= len(text) {

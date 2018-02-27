@@ -255,42 +255,61 @@ func TestPartialLexer(x *testing.T) {
 }
 
 func TestRegression(t *testing.T) {
-	skip := func(*Scanner, *machines.Match) (interface{}, error) {
-		return nil, nil
-	}
-	token := func(id int, name string) Action {
+	token := func(name string) Action {
 		return func(s *Scanner, m *machines.Match) (interface{}, error) {
-			return string(m.Bytes), nil
+			return fmt.Sprintf("%v:%q", name, string(m.Bytes)), nil
 		}
 	}
 
-	data := "true" // This input fails.
-	// data := "true " // this with a trailing space does not.
-
-	lexer := NewLexer()
-	lexer.Add([]byte("true"), token(0, "TRUE"))
-	lexer.Add([]byte("( |\t|\n|\r)+"), skip)
-
-	if err := lexer.CompileDFA(); err != nil {
-		t.Fatal(err)
+	newLexer := func() *Lexer {
+		lexer := NewLexer()
+		lexer.Add([]byte("true"), token("TRUE"))
+		lexer.Add([]byte("( |\t|\n|\r)+"), token("SPACE"))
+		return lexer
 	}
 
-	var scanner *Scanner
-
-	scanner, err := lexer.Scanner([]byte(data))
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		text   string
+		tokens int
+	}{
+		{`true`, 1},
+		{`true `, 2},
 	}
 
-	found := 0
-	tok, err, eos := scanner.Next()
-	for ; !eos; tok, err, eos = scanner.Next() {
-		fmt.Printf("Token: %v\n", tok)
-		found++
-	}
-	if found != 1 {
-		t.Errorf("Expected exactly 1 tokens got %v, ===\nErr: %v\nEOS: %v\nTC: %d\n", found, err, eos, scanner.TC)
+	runTest := func(lexer *Lexer) {
+		for _, test := range tests {
+			scanner, err := lexer.Scanner([]byte(test.text))
+			if err != nil {
+				t.Fatal(err)
+			}
 
+			found := 0
+			tok, err, eos := scanner.Next()
+			for ; !eos; tok, err, eos = scanner.Next() {
+				if err != nil {
+					t.Fatal(err)
+				}
+				fmt.Printf("Token: %v\n", tok)
+				found++
+			}
+			if found != test.tokens {
+				t.Errorf("Expected exactly %v tokens got %v, ===\nErr: %v\nEOS: %v\nTC: %d\n", test.tokens, found, err, eos, scanner.TC)
+			}
+		}
+	}
+	{
+		lexer := newLexer()
+		if err := lexer.CompileNFA(); err != nil {
+			t.Fatal(err)
+		}
+		runTest(lexer)
+	}
+	{
+		lexer := newLexer()
+		if err := lexer.CompileDFA(); err != nil {
+			t.Fatal(err)
+		}
+		runTest(lexer)
 	}
 }
 
@@ -353,30 +372,146 @@ ddns-update-style none;
 		for _, lit := range literals {
 			lex.Add([]byte(lit), token(lit))
 		}
-
-		err := lex.Compile()
-		if err != nil {
-			panic(err)
-		}
-
 		return lex
 	}
 
-	scanner, err := newLexer().Scanner([]byte(text))
-	if err != nil {
-		return
-	}
-	for tok, err, eof := scanner.Next(); !eof; tok, err, eof = scanner.Next() {
+	runTest := func(lexer *Lexer) {
+		scanner, err := lexer.Scanner([]byte(text))
 		if err != nil {
-			t.Error(err)
+			return
 		}
-		token := tok.(*Token)
-		fmt.Printf("%-7v | %-10v | %v:%v-%v:%v\n",
-			tokens[token.Type],
-			strings.TrimSpace(string(token.Lexeme)),
-			token.StartLine,
-			token.StartColumn,
-			token.EndLine,
-			token.EndColumn)
+		for tok, err, eof := scanner.Next(); !eof; tok, err, eof = scanner.Next() {
+			if err != nil {
+				t.Fatal(err)
+				break
+			}
+			token := tok.(*Token)
+			fmt.Printf("%-7v | %-10v | %v:%v-%v:%v\n",
+				tokens[token.Type],
+				strings.TrimSpace(string(token.Lexeme)),
+				token.StartLine,
+				token.StartColumn,
+				token.EndLine,
+				token.EndColumn)
+		}
 	}
+	{
+		lexer := newLexer()
+		if err := lexer.CompileNFA(); err != nil {
+			t.Fatal(err)
+		}
+		runTest(lexer)
+	}
+	{
+		lexer := newLexer()
+		if err := lexer.CompileDFA(); err != nil {
+			t.Fatal(err)
+		}
+		runTest(lexer)
+	}
+}
+
+func TestPythonStrings(t *testing.T) {
+	tokens := []string{
+		"UNDEF",
+		"TRUE",
+		"SINGLE_STRING",
+		"TRIPLE_STRING",
+		"TRIPLE_STRING2",
+		"TY_STRING",
+		"SPACE",
+	}
+	tokenIds := map[string]int{}
+	for i, tok := range tokens {
+		tokenIds[tok] = i
+	}
+	skip := func(*Scanner, *machines.Match) (interface{}, error) {
+		return nil, nil
+	}
+	token := func(name string) Action {
+		return func(s *Scanner, m *machines.Match) (interface{}, error) {
+			return s.Token(tokenIds[name], string(m.Bytes), m), nil
+		}
+	}
+
+	newLexer := func() *Lexer {
+		lexer := NewLexer()
+		lexer.Add([]byte("true"), token("TRUE"))
+		lexer.Add([]byte(`'''([^\\']|(\\.))*'''`), token("TRIPLE_STRING"))
+		lexer.Add([]byte(`"""([^\\"]|(\\.))*"""`), token("TRIPLE_STRING"))
+		lexer.Add([]byte(`"([^\\"]|(\\.))*"`), token("SINGLE_STRING"))
+		lexer.Add([]byte(`'([^\\']|(\\.))*'`), token("SINGLE_STRING"))
+		lexer.Add([]byte("( |\t|\n|\r)+"), skip)
+		return lexer
+	}
+
+	tests := []struct {
+		text   string
+		tokens int
+	}{
+		{`'''hi'''`, 1},
+		{`"""hi"""`, 1},
+		{`"hi"`, 1},
+		{`'hi'`, 1},
+		{`''`, 1},
+		{`""`, 1},
+		{`"""  .  .
+			hello
+		"""`, 1},
+		{`'''' ''''`, 4},
+		{`''''''`, 1},
+		{`""""""`, 1},
+		{`"""""" """
+		hi there""" "wizard" true`, 4},
+	}
+
+	runTest := func(lexer *Lexer) {
+		for _, test := range tests {
+			fmt.Printf("test %q\n", test.text)
+			scanner, err := lexer.Scanner([]byte(test.text))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			found := 0
+			tok, err, eos := scanner.Next()
+			for ; !eos; tok, err, eos = scanner.Next() {
+				if err != nil {
+					t.Error(err)
+					fmt.Printf("err: %v\n", err)
+					scanner.TC++
+				} else {
+					token := tok.(*Token)
+					fmt.Printf("%-15v | %-30q | %d-%d | %v:%v-%v:%v\n",
+						tokens[token.Type],
+						strings.TrimSpace(string(token.Lexeme)),
+						token.TC,
+						token.TC+len(token.Lexeme),
+						token.StartLine,
+						token.StartColumn,
+						token.EndLine,
+						token.EndColumn)
+					found++
+				}
+			}
+			if found != test.tokens {
+				t.Errorf("expected %v tokens got %v: %q", test.tokens, found, test.text)
+			}
+		}
+	}
+	{
+		lexer := newLexer()
+		if err := lexer.CompileNFA(); err != nil {
+			t.Fatal(err)
+		}
+		runTest(lexer)
+	}
+	{
+		lexer := newLexer()
+		if err := lexer.CompileDFA(); err != nil {
+			t.Fatal(err)
+		}
+		runTest(lexer)
+	}
+
 }
