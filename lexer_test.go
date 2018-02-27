@@ -366,7 +366,7 @@ ddns-update-style none;
 		}
 
 		lex.Add([]byte(`#[^\n]*\n?`), token("COMMENT"))
-		lex.Add([]byte(`([a-z]|[A-Z]|[0-9]|_|\-|\.)*`), token("ID"))
+		lex.Add([]byte(`([a-z]|[A-Z]|[0-9]|_|\-|\.)+`), token("ID"))
 		lex.Add([]byte(`"([^\\"]|(\\.))*"`), token("ID"))
 		lex.Add([]byte("[\n \t]"), skip)
 		for _, lit := range literals {
@@ -513,5 +513,26 @@ func TestPythonStrings(t *testing.T) {
 		}
 		runTest(lexer)
 	}
+}
 
+func TestNoEmptyStrings(t *testing.T) {
+	skip := func(*Scanner, *machines.Match) (interface{}, error) {
+		return nil, nil
+	}
+	lexer := NewLexer()
+	lexer.Add([]byte("(ab|a)*"), skip)
+	{
+		if err := lexer.CompileNFA(); err == nil {
+			t.Fatal("expected error")
+		} else {
+			t.Logf("got expected error: %v", err)
+		}
+	}
+	{
+		if err := lexer.CompileDFA(); err == nil {
+			t.Fatal("expected error")
+		} else {
+			t.Logf("got expected error: %v", err)
+		}
+	}
 }

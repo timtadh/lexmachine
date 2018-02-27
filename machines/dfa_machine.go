@@ -72,7 +72,6 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 					EndColumn:   endLC.col,
 					Bytes:       text[startTC:matchTC],
 				}
-				matchID = -1
 				if matchTC == startTC {
 					err := &EmptyMatchError{
 						MatchID: matchID,
@@ -82,12 +81,27 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 					}
 					return startTC, nil, err, scan
 				}
+				matchID = -1
 				return matchTC, match, nil, scan
 			}
 		}
 		if match, has := accepting[state]; has {
 			matchID = match
 			matchTC = tc
+		}
+		if startTC <= len(text) && matchID > -1 && matchTC == startTC {
+			var startLC lineCol
+			if startTC < len(text) {
+				startLC = lineCols[startTC]
+			}
+			err := &EmptyMatchError{
+				MatchID: matchID,
+				TC:      tc,
+				Line:    startLC.line,
+				Column:  startLC.col,
+			}
+			matchID = -1
+			return startTC, nil, err, scan
 		}
 		if startTC < len(text) && matchTC <= len(text) && matchID > -1 {
 			startLC := lineCols[startTC]
@@ -102,15 +116,6 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 				Bytes:       text[startTC:matchTC],
 			}
 			matchID = -1
-			if matchTC == startTC {
-				err := &EmptyMatchError{
-					MatchID: matchID,
-					TC:      tc,
-					Line:    startLC.line,
-					Column:  startLC.col,
-				}
-				return startTC, nil, err, scan
-			}
 			return matchTC, match, nil, scan
 		}
 		if matchTC != len(text) && startTC >= len(text) {

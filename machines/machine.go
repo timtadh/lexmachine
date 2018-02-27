@@ -208,8 +208,6 @@ func LexerEngine(program inst.Slice, text []byte) Scanner {
 					EndColumn:   eCol,
 					Bytes:       text[startTC:matchTC],
 				}
-				prevTC = startTC
-				matchPC = -1
 				if matchTC == startTC {
 					err := &EmptyMatchError{
 						MatchID: matchPC,
@@ -219,6 +217,8 @@ func LexerEngine(program inst.Slice, text []byte) Scanner {
 					}
 					return startTC, nil, err, scan
 				}
+				prevTC = startTC
+				matchPC = -1
 				return matchTC, match, nil, scan
 			}
 		}
