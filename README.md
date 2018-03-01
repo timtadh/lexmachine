@@ -1,4 +1,4 @@
-# `lexmachine` - Lexical Analysis Framework for Golang
+# `lexmachine` - Lexical Analysis Framewerk for Golang
 
 By Tim Henderson
 
@@ -259,7 +259,7 @@ which moves from one state to another state based on an input character. In
 general, in lexing there are two usual types of state machines used:
 Non-deterministic and Deterministic.
 
-Before a lexer (like the ones described above) and be used it must be compiled
+Before a lexer (like the ones described above) can be used it must be compiled
 into either a Non-deterministic Finite Automaton (NFA) or a [Deterministic
 Finite Automaton
 (DFA)](http://hackthology.com/faster-tokenization-with-a-dfa-backend-for-lexmachine.html).
