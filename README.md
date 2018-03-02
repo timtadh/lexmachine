@@ -576,7 +576,7 @@ Range' -> CharClassItem Range'
 CharClassItem -> BYTE
               -> BYTE `-` BYTE
 
-CHAR -> matches any character expect '|', '+', '*', '?', '(', ')', '[', ']', '^'
+CHAR -> matches any character except '|', '+', '*', '?', '(', ')', '[', ']', '^'
         unless escaped. Additionally '.' is returned as the wildcard character
         which matches any character. Built-in character classes are also handled
         here.
