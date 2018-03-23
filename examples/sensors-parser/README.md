@@ -1,10 +1,10 @@
 # Parse a sensors.conf file with goyacc and lexmachine
 
 This is an example for how to integrate lexmachine with the [standard
-yacc](golang.org/x/tools/cmd/goyacc) implementation for Go. Yacc is its own
-weird and interesting language for specifying bottom up shift reduce parsers.
-You can "easily" use lexmachine with yacc but it does require some understanding
-of
+yacc](http://godoc.org/golang.org/x/tools/cmd/goyacc) implementation for Go.
+Yacc is its own weird and interesting language for specifying bottom up shift
+reduce parsers. You can "easily" use lexmachine with yacc but it does require
+some understanding of
 
 1.  How yacc works (eg. the things it generates)
 2.  How to use those generated definitions in your code
