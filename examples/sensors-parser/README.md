@@ -2,7 +2,7 @@
 
 This is an example for how to integrate lexmachine with the [standard
 yacc](golang.org/x/tools/cmd/goyacc) implementation for Go. Yacc is its own
-wierd and interesting language for specifying bottom up shift reduce parsers.
+weird and interesting language for specifying bottom up shift reduce parsers.
 You can "easily" use lexmachine with yacc but it does require some understanding
 of
 
@@ -36,7 +36,7 @@ type yyLexer interface {
 
 The `yySymType` is generate from Yacc via the `%union` directive. The tokenType
 is the token identifier. However, the tokenType needs to be in the correct range
-for Yacc which starts at `yyPrivate`. The way to get the types idenified
+for Yacc which starts at `yyPrivate`. The way to get the types identified
 correctly is to set it as `return token.Type + yyPrivate - 1`. See
 `sensors_golex.go` for a full example.
 

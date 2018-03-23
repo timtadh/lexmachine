@@ -32,6 +32,9 @@ analysis system for Go.
 1. [Regular Expressions in `lexmachine`](#regular-expressions)
 1. [History](#history)
 1. [Complete Example](#complete-example)
+1. [Using `lexmachine` with `goyacc`](https://github.com/timtadh/lexmachine/tree/master/examples/sensors-parser)
+   Required reading if you want to use `lexmachine` with the standard yacc
+   implementation for Go (or its derivatives).
 
 ## Documentation
 
