@@ -32,15 +32,15 @@ analysis system for Go.
 1. [Regular Expressions in `lexmachine`](#regular-expressions)
 1. [History](#history)
 1. [Complete Example](#complete-example)
-1. [Using `lexmachine` with `goyacc`](https://github.com/timtadh/lexmachine/tree/master/examples/sensors-parser)
-   Required reading if you want to use `lexmachine` with the standard yacc
-   implementation for Go (or its derivatives).
 
 ## Documentation
 
 -   [Tutorial](http://hackthology.com/writing-a-lexer-in-go-with-lexmachine.html)
 -   [How It Works](http://hackthology.com/faster-tokenization-with-a-dfa-backend-for-lexmachine.html)
 -   [Narrative Documentation](#narrative-documentation)
+-   [Using `lexmachine` with `goyacc`](https://github.com/timtadh/lexmachine/tree/master/examples/sensors-parser)
+    Required reading if you want to use `lexmachine` with the standard yacc
+    implementation for Go (or its derivatives).
 -   [![GoDoc](https://godoc.org/github.com/timtadh/lexmachine?status.svg)](https://godoc.org/github.com/timtadh/lexmachine)
 
 ### What is in Box
