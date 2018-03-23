@@ -44,7 +44,7 @@ Yacc in its own special way has each production "return" a yySymType which
 serves as *both* an AST node *and* a token. Thus, my definition for yySymType
 is:
 
-```go
+```yacc
 %union{
     token *lexmachine.Token
     ast   *Node
@@ -111,7 +111,7 @@ Since `yyLexer` is an interface in goyacc their is some casting involved to
 populate `stmts` (note `yylex` is a magic variable in yacc that refers to the
 lexer object you provided):
 
-```go
+```yacc
 Line : Stmt NEWLINE             { yylex.(*golex).stmts = append(yylex.(*golex).stmts, $1.ast) }
      | NEWLINE
      ;
