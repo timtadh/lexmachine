@@ -1,7 +1,6 @@
 package lexmachine
 
 import (
-	"bytes"
 	"fmt"
 )
 
@@ -11,52 +10,6 @@ import (
 	"github.com/timtadh/lexmachine/inst"
 	"github.com/timtadh/lexmachine/machines"
 )
-
-// Token is an optional token representation you could use to represent the
-// tokens produced by a lexer built with lexmachine.
-//
-// Here is an example for constructing a lexer Action which turns a
-// machines.Match struct into a token using the scanners Token helper function.
-//
-//     func token(name string, tokenIds map[string]int) lex.Action {
-//         return func(s *lex.Scanner, m *machines.Match) (interface{}, error) {
-//             return s.Token(tokenIds[name], string(m.Bytes), m), nil
-//         }
-//     }
-//
-type Token struct {
-	Type        int
-	Value       interface{}
-	Lexeme      []byte
-	TC          int
-	StartLine   int
-	StartColumn int
-	EndLine     int
-	EndColumn   int
-}
-
-// Equals checks the equality of two tokens ignoring the Value field.
-func (t *Token) Equals(other *Token) bool {
-	if t == nil && other == nil {
-		return true
-	} else if t == nil {
-		return false
-	} else if other == nil {
-		return false
-	}
-	return t.TC == other.TC &&
-		t.StartLine == other.StartLine &&
-		t.StartColumn == other.StartColumn &&
-		t.EndLine == other.EndLine &&
-		t.EndColumn == other.EndColumn &&
-		bytes.Equal(t.Lexeme, other.Lexeme) &&
-		t.Type == other.Type
-}
-
-// String formats the token in a human readable form.
-func (t *Token) String() string {
-	return fmt.Sprintf("%d %q %d (%d, %d)-(%d, %d)", t.Type, t.Value, t.TC, t.StartLine, t.StartColumn, t.EndLine, t.EndColumn)
-}
 
 // An Action is a function which get called when the Scanner finds a match
 // during the lexing process. They turn a low level machines.Match struct into
@@ -82,104 +35,6 @@ type Lexer struct {
 	dfaMatches map[int]int // match_idx -> pat_idx
 	program    inst.Slice
 	dfa        *dfapkg.DFA
-}
-
-// Scanner tokenizes a byte string based on the patterns provided to the lexer
-// object which constructed the scanner. This object works as functional
-// iterator using the Next method.
-//
-// Example
-//
-//     lexer, err := CreateLexer()
-//     if err != nil {
-//         return err
-//     }
-//     scanner, err := lexer.Scanner(someBytes)
-//     if err != nil {
-//         return err
-//     }
-//     for tok, err, eos := scanner.Next(); !eos; tok, err, eos = scanner.Next() {
-//         if err != nil {
-//             return err
-//         }
-//         fmt.Println(tok)
-//     }
-//
-type Scanner struct {
-	lexer   *Lexer
-	matches map[int]int
-	scan    machines.Scanner
-	Text    []byte
-	TC      int
-	pTC     int
-	sLine   int
-	sColumn int
-	eLine   int
-	eColumn int
-}
-
-// Next iterates through the string being scanned returning one token at a time
-// until either an error is encountered or the end of the string is reached.
-// The token is returned by the tok value. An error is indicated by err.
-// Finally, eos (a bool) indicates the End Of String when it returns as true.
-//
-// Example
-//
-//     for tok, err, eos := scanner.Next(); !eos; tok, err, eos = scanner.Next() {
-//         if err != nil {
-//             // handle the error and exit the loop. For example:
-//             return err
-//         }
-//         // do some processing on tok or store it somewhere. eg.
-//         fmt.Println(tok)
-//     }
-//
-// One useful error type which could be returned by Next() is a
-// match.UnconsumedInput which provides the position information for where in
-// the text the scanning failed.
-//
-// For more information on functional iterators see:
-// http://hackthology.com/functional-iteration-in-go.html
-func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
-	var token interface{}
-	for token == nil {
-		tc, match, err, scan := s.scan(s.TC)
-		if scan == nil {
-			return nil, nil, true
-		} else if err != nil {
-			return nil, err, false
-		} else if match == nil {
-			return nil, fmt.Errorf("No match but no error"), false
-		}
-		s.scan = scan
-		s.pTC = s.TC
-		s.TC = tc
-		s.sLine = match.StartLine
-		s.sColumn = match.StartColumn
-		s.eLine = match.EndLine
-		s.eColumn = match.EndColumn
-
-		pattern := s.lexer.patterns[s.matches[match.PC]]
-		token, err = pattern.action(s, match)
-		if err != nil {
-			return nil, err, false
-		}
-	}
-	return token, nil, false
-}
-
-// Token is a helper function for constructing a Token type inside of a Action.
-func (s *Scanner) Token(typ int, value interface{}, m *machines.Match) *Token {
-	return &Token{
-		Type:        typ,
-		Value:       value,
-		Lexeme:      m.Bytes,
-		TC:          m.TC,
-		StartLine:   m.StartLine,
-		StartColumn: m.StartColumn,
-		EndLine:     m.EndLine,
-		EndColumn:   m.EndColumn,
-	}
 }
 
 // NewLexer constructs a new lexer object.
