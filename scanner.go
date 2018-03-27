@@ -33,11 +33,6 @@ type Scanner struct {
 	scan    machines.Scanner
 	Text    []byte
 	TC      int
-	pTC     int
-	sLine   int
-	sColumn int
-	eLine   int
-	eColumn int
 }
 
 // Next iterates through the string being scanned returning one token at a time
@@ -74,12 +69,7 @@ func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
 			return nil, fmt.Errorf("No match but no error"), false
 		}
 		s.scan = scan
-		s.pTC = s.TC
 		s.TC = tc
-		s.sLine = match.StartLine
-		s.sColumn = match.StartColumn
-		s.eLine = match.EndLine
-		s.eColumn = match.EndColumn
 
 		pattern := s.lexer.patterns[s.matches[match.PC]]
 		token, err = pattern.action(s, match)
