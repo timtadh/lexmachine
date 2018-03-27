@@ -2,14 +2,19 @@ package lexmachine
 
 import (
 	"fmt"
-)
 
-import (
 	dfapkg "github.com/timtadh/lexmachine/dfa"
 	"github.com/timtadh/lexmachine/frontend"
 	"github.com/timtadh/lexmachine/inst"
 	"github.com/timtadh/lexmachine/machines"
+	"github.com/timtadh/lexmachine/stream"
+	"github.com/timtadh/lexmachine/stream_machines"
 )
+
+type pattern struct {
+	regex  []byte
+	action Action
+}
 
 // An Action is a function which get called when the Scanner finds a match
 // during the lexing process. They turn a low level machines.Match struct into
@@ -17,12 +22,7 @@ import (
 // have different needs Actions merely return an interface{}. This allows you
 // to represent a token in anyway you wish. An example Token struct is provided
 // above.
-type Action func(scan *Scanner, match *machines.Match) (interface{}, error)
-
-type pattern struct {
-	regex  []byte
-	action Action
-}
+type Action func(scan Scanner, match *machines.Match) (interface{}, error)
 
 // Lexer is a "builder" object which lets you construct a Scanner type which
 // does the actual work of tokenizing (splitting up and categorizing) a byte
@@ -42,8 +42,8 @@ func NewLexer() *Lexer {
 	return &Lexer{}
 }
 
-// Scanner creates a scanner for a particular byte string from the lexer.
-func (l *Lexer) Scanner(text []byte) (*Scanner, error) {
+// TextScanner creates a scanner for a particular byte string from the lexer.
+func (l *Lexer) TextScanner(text []byte) (*TextScanner, error) {
 	if l.program == nil && l.dfa == nil {
 		err := l.Compile()
 		if err != nil {
@@ -55,9 +55,9 @@ func (l *Lexer) Scanner(text []byte) (*Scanner, error) {
 	textCopy := make([]byte, len(text))
 	copy(textCopy, text)
 
-	var s *Scanner
+	var s *TextScanner
 	if l.dfa != nil {
-		s = &Scanner{
+		s = &TextScanner{
 			lexer:   l,
 			matches: l.dfaMatches,
 			scan:    machines.DFALexerEngine(l.dfa.Start, l.dfa.Error, l.dfa.Trans, l.dfa.Accepting, textCopy),
@@ -65,13 +65,36 @@ func (l *Lexer) Scanner(text []byte) (*Scanner, error) {
 			TC:      0,
 		}
 	} else {
-		s = &Scanner{
+		s = &TextScanner{
 			lexer:   l,
 			matches: l.nfaMatches,
 			scan:    machines.LexerEngine(l.program, textCopy),
 			Text:    textCopy,
 			TC:      0,
 		}
+	}
+	return s, nil
+}
+
+// StreamScanner creates a scanner for a particular stream from the lexer.
+func (l *Lexer) StreamScanner(text stream.Stream) (*StreamScanner, error) {
+	if l.program == nil && l.dfa == nil {
+		err := l.Compile()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var s *StreamScanner
+	if l.dfa != nil {
+		s = &StreamScanner{
+			lexer:   l,
+			matches: l.dfaMatches,
+			scan:    stream_machines.DFALexerEngine(l.dfa.Start, l.dfa.Error, l.dfa.Trans, l.dfa.Accepting, text),
+			Text:    text,
+		}
+	} else {
+		panic("not implemented")
 	}
 	return s, nil
 }
@@ -180,7 +203,7 @@ func (l *Lexer) CompileDFA() error {
 }
 
 func (l *Lexer) matchesEmptyString() (bool, error) {
-	s, err := l.Scanner([]byte(""))
+	s, err := l.TextScanner([]byte(""))
 	if err != nil {
 		return false, err
 	}

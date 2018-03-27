@@ -6,6 +6,11 @@ import (
 	"github.com/timtadh/lexmachine/machines"
 )
 
+type Scanner interface {
+	Next() (tok interface{}, err error, eos bool)
+	Token(typ int, value interface{}, m *machines.Match) *Token
+}
+
 // Scanner tokenizes a byte string based on the patterns provided to the lexer
 // object which constructed the scanner. This object works as functional
 // iterator using the Next method.
@@ -27,7 +32,7 @@ import (
 //         fmt.Println(tok)
 //     }
 //
-type Scanner struct {
+type TextScanner struct {
 	lexer   *Lexer
 	matches map[int]int
 	scan    machines.Scanner
@@ -57,7 +62,7 @@ type Scanner struct {
 //
 // For more information on functional iterators see:
 // http://hackthology.com/functional-iteration-in-go.html
-func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
+func (s *TextScanner) Next() (tok interface{}, err error, eos bool) {
 	var token interface{}
 	for token == nil {
 		tc, match, err, scan := s.scan(s.TC)
@@ -81,7 +86,7 @@ func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
 }
 
 // Token is a helper function for constructing a Token type inside of a Action.
-func (s *Scanner) Token(typ int, value interface{}, m *machines.Match) *Token {
+func (s *TextScanner) Token(typ int, value interface{}, m *machines.Match) *Token {
 	return &Token{
 		Type:        typ,
 		Value:       value,

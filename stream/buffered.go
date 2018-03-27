@@ -92,7 +92,7 @@ func (b *bufferedStream) Peek(i int) (char Character, has bool) {
 func (b *bufferedStream) Started() bool {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	return b.eos
+	return b.started
 }
 
 // EOS indicates whether the stream has reached End Of Stream
