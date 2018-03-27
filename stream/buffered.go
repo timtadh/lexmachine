@@ -1,7 +1,6 @@
 package stream
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"sync"
@@ -9,19 +8,20 @@ import (
 
 type bufferedStream struct {
 	lock    sync.Mutex
-	r       *bufio.Reader
+	r       io.Reader
 	tc      int
 	line    int
 	column  int
 	started bool
 	eos     bool
-	buf     []byte
+	buf     []Character
 	err     error
 }
 
+// BufferedStream makes a Stream which is backed by an expandable buffer.
 func BufferedStream(r io.Reader) Stream {
 	b := &bufferedStream{
-		r:      bufio.NewReader(r),
+		r:      r,
 		tc:     -1,
 		line:   1,
 		column: 0,
@@ -29,7 +29,20 @@ func BufferedStream(r io.Reader) Stream {
 	return b
 }
 
+// Byte returns the byte at the cursor
 func (b *bufferedStream) Byte() byte {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	if !b.started {
+		panic(fmt.Errorf("Call to Byte() before first call to Advance"))
+	} else if b.eos {
+		panic(fmt.Errorf("Call to Byte() after first call to Advance returned false"))
+	}
+	return b.buf[0].Byte
+}
+
+// Character returns the character at the cursor
+func (b *bufferedStream) Character() Character {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	if !b.started {
@@ -40,6 +53,7 @@ func (b *bufferedStream) Byte() byte {
 	return b.buf[0]
 }
 
+// Position gives the current position of the cursor
 func (b *bufferedStream) Position() (tc, line, column int) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
@@ -48,10 +62,11 @@ func (b *bufferedStream) Position() (tc, line, column int) {
 	} else if b.eos {
 		panic(fmt.Errorf("Call to Position() after first call to Advance returned false"))
 	}
-	return b.tc, b.line, b.column
+	return b.buf[0].TC, b.buf[0].Line, b.buf[0].Column
 }
 
-func (b *bufferedStream) Peek(i int) (char byte, has bool) {
+// Peek gets the character at lookahead i
+func (b *bufferedStream) Peek(i int) (char Character, has bool) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	if b.eos {
@@ -68,23 +83,27 @@ func (b *bufferedStream) Peek(i int) (char byte, has bool) {
 		return b.buf[i], true
 	}
 	if !b.read(i) {
-		return 0, false
+		return Character{}, false
 	}
 	return b.buf[i], true
 }
 
+// Started indicates if Advance has been called at least once.
 func (b *bufferedStream) Started() bool {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	return b.eos
 }
 
+// EOS indicates whether the stream has reached End Of Stream
 func (b *bufferedStream) EOS() bool {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	return b.eos
 }
 
+// Err returns the error from the underlying io.Reader if io.Read() returned
+// a non-EOF error.
 func (b *bufferedStream) Err() error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
@@ -96,12 +115,14 @@ func (b *bufferedStream) Err() error {
 	return b.err
 }
 
+// Advance moves the cursor forward by i
 func (b *bufferedStream) Advance(i int) bool {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	return b.advance(i)
 }
 
+// advance moves the cursor forward by i
 func (b *bufferedStream) advance(i int) bool {
 	if i <= 0 {
 		panic(fmt.Errorf("Advance() must be called with positive move got %d", i))
@@ -129,16 +150,11 @@ func (b *bufferedStream) advance(i int) bool {
 			panic(fmt.Errorf("i != 0 (i = %d)", i))
 		}
 	}
-	b.trackPos(b.buf[0])
 	return true
 }
 
-// trims the buffer by up i bytes and returns the number of
-// bytes trimmed.
+// trims the buffer by up i bytes and returns the number of bytes trimmed.
 func (b *bufferedStream) trimBuffer(i int) int {
-	for j := 1; j < i && j < len(b.buf); j++ {
-		b.trackPos(b.buf[j])
-	}
 	if len(b.buf) > i {
 		// we already recorded the position
 		// of b.buf[0]. we need to track all the chars
@@ -154,8 +170,8 @@ func (b *bufferedStream) trimBuffer(i int) int {
 	return 0
 }
 
-// updates the position information for the given character.
-// only call once per character in the stream.
+// updates the position information for the given character.  only call once
+// per character in the stream.
 func (b *bufferedStream) trackPos(char byte) {
 	b.tc++
 	if char == '\n' {
@@ -166,6 +182,7 @@ func (b *bufferedStream) trackPos(char byte) {
 	}
 }
 
+// reads at least i bytes from the underlying reader into the buffer.
 func (b *bufferedStream) read(i int) bool {
 	if b.eos {
 		return false
@@ -180,7 +197,15 @@ func (b *bufferedStream) read(i int) bool {
 			}
 			return false
 		}
-		b.buf = append(b.buf, buf[:n]...)
+		for _, c := range buf[:n] {
+			b.trackPos(c)
+			b.buf = append(b.buf, Character{
+				Byte:   c,
+				TC:     b.tc,
+				Line:   b.line,
+				Column: b.column,
+			})
+		}
 		if len(b.buf) >= i+1 {
 			break
 		}

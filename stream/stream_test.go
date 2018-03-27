@@ -74,7 +74,7 @@ func TestPeekTillW(t *testing.T) {
 		if !has {
 			break
 		}
-		if b == 'w' {
+		if b.Byte == 'w' {
 			s.Advance(i)
 			break
 		}
@@ -110,7 +110,7 @@ func TestPeekTillWThenL(t *testing.T) {
 		if !has {
 			break
 		}
-		if b == 'w' {
+		if b.Byte == 'w' {
 			s.Advance(i)
 			break
 		}
@@ -123,7 +123,7 @@ func TestPeekTillWThenL(t *testing.T) {
 		if !has {
 			break
 		}
-		if b == 'l' {
+		if b.Byte == 'l' {
 			s.Advance(i)
 			break
 		}
@@ -159,7 +159,7 @@ func TestPeekTillWThenLThenEnd(t *testing.T) {
 		if !has {
 			break
 		}
-		if b == 'w' {
+		if b.Byte == 'w' {
 			s.Advance(i)
 			break
 		}
@@ -172,7 +172,7 @@ func TestPeekTillWThenLThenEnd(t *testing.T) {
 		if !has {
 			break
 		}
-		if b == 'l' {
+		if b.Byte == 'l' {
 			s.Advance(i)
 			break
 		}
@@ -208,7 +208,7 @@ func TestPeekThenReadFullStream(t *testing.T) {
 		if !has {
 			break
 		}
-		if err := peek.WriteByte(b); err != nil {
+		if err := peek.WriteByte(b.Byte); err != nil {
 			if err != nil {
 				t.Fatalf("err writing %v", err)
 			}
@@ -285,6 +285,45 @@ func TestLineColumns(t *testing.T) {
 		}
 		if column != expected[i].column {
 			t.Fatalf("got %v expected %v", column, expected[i].column)
+		}
+	}
+}
+
+func TestEveryOtherLineColumns(t *testing.T) {
+	text := `b
+	this
+	is
+	wizard
+`
+	var expected = []struct {
+		tc, line, column int
+		char             byte
+	}{
+		{1, 2, 0, '\n'},
+		{3, 2, 2, 't'},
+		{5, 2, 4, 'i'},
+		{7, 3, 0, '\n'},
+		{9, 3, 2, 'i'},
+		{11, 4, 0, '\n'},
+		{13, 4, 2, 'w'},
+		{15, 4, 4, 'z'},
+		{17, 4, 6, 'r'},
+		{19, 5, 0, '\n'},
+	}
+	s := BufferedStream(bytes.NewBufferString(text))
+	for i := 0; s.Advance(2); i++ {
+		c := s.Character()
+		if c.Byte != expected[i].char {
+			t.Fatalf("got %v expected %v", c.Byte, expected[i].char)
+		}
+		if c.TC != expected[i].tc {
+			t.Fatalf("got %v expected %v", c.TC, expected[i].tc)
+		}
+		if c.Line != expected[i].line {
+			t.Fatalf("got %v expected %v", c.Line, expected[i].line)
+		}
+		if c.Column != expected[i].column {
+			t.Fatalf("got %v expected %v", c.Column, expected[i].column)
 		}
 	}
 }

@@ -1,5 +1,7 @@
 package stream
 
+import "fmt"
+
 // Stream represents a stream of bytes. Its interface is analogous to
 // bufio.Scanner. Here is an example for how to read all the bytes in a stream
 // (and print them one by one):
@@ -19,6 +21,11 @@ type Stream interface {
 	// false.
 	Byte() byte
 
+	// Character returns the current byte in the stream. This method will panic
+	// if Advance has not been called before this method or Advance has
+	// returned false.
+	Character() Character
+
 	// Position returns the position of the current byte: text counter, line,
 	// and column. This method will panic if Advance has not been called before
 	// this method or Advance has returned false.
@@ -30,7 +37,7 @@ type Stream interface {
 	// there are no further bytes in the stream (or lookahead causes a read
 	// past the end of the stream) Peek returns has == false. You may call this
 	// method before Advance.
-	Peek(lookahead int) (char byte, has bool)
+	Peek(lookahead int) (char Character, has bool)
 
 	// Advance moves the cursor i bytes forward in the stream. If there is a
 	// byte to read it returns true. If it reaches the end of the stream (EOS)
@@ -51,4 +58,17 @@ type Stream interface {
 	// Err() will never return io.EOF (it will be nil in this case -- following
 	// the behavior of ioutil.ReadAll)
 	Err() error
+}
+
+// Character represents one byte in a stream with position information.
+type Character struct {
+	Byte   byte
+	TC     int
+	Line   int
+	Column int
+}
+
+// String humanizes the character
+func (c Character) String() string {
+	return fmt.Sprintf("<%q tc:%d @ %d:%d>", c.Byte, c.TC, c.Line, c.Column)
 }
