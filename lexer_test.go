@@ -84,34 +84,50 @@ func TestSimple(x *testing.T) {
 		//			match.TC, match.StartLine, match.StartColumn)
 		//},
 		func(s Scanner, match *machines.Match) (interface{}, error) {
-			scan := s.(*StreamScanner)
-			if scan.Text.EOS() {
-				return nil,
-					fmt.Errorf("unclosed comment starting at %d, (%d, %d)",
-						match.TC, match.StartLine, match.StartColumn)
-			}
-			buf := make([]stream.Character, 0, 10)
-			buf = append(buf, scan.Text.Character())
-			for lh := 1; ; lh++ {
-				c, has := scan.Text.Peek(lh)
-				if !has {
-					break
+			text := s.Buffer()
+			buf := make([]byte, 0, 10)
+			buf = append(buf, match.Bytes...)
+			open := 1
+			tc := text.TC()
+			for ; open > 0; tc++ {
+				if !text.HasByte(tc) {
+					return nil,
+						fmt.Errorf("unclosed comment starting at %d, (%d, %d) containing %q",
+							match.TC, match.StartLine, match.StartColumn, buf)
 				}
-				if c.Byte == '\\' {
+				char := text.Byte(tc)
+				buf = append(buf, char)
+				if char == '\\' {
 					// the next character is skipped
-					lh++
-				} else if c.Byte == '*' {
-					if n, has := scan.Text.Peek(lh + 1); has {
-						if n.Byte == '/' {
-							scan.Text.Advance(lh + 2)
-							return nil, nil
+					tc++
+					if text.HasByte(tc) {
+						buf = append(buf, text.Byte(tc))
+					}
+				} else if char == '/' {
+					if text.HasByte(tc + 1) {
+						next := text.Byte(tc + 1)
+						if next == '*' {
+							buf = append(buf, next)
+							tc++
+							open++
+							continue
+						}
+					}
+				} else if char == '*' {
+					if text.HasByte(tc + 1) {
+						next := text.Byte(tc + 1)
+						if next == '/' {
+							buf = append(buf, next)
+							tc++
+							open--
+							continue
 						}
 					}
 				}
 			}
-			return nil,
-				fmt.Errorf("unclosed comment starting at %d, (%d, %d)",
-					match.TC, match.StartLine, match.StartColumn)
+			fmt.Printf("%q\n", buf)
+			text.SetTC(tc)
+			return nil, nil
 		},
 	)
 
@@ -121,10 +137,10 @@ func TestSimple(x *testing.T) {
 		print fred
 		name =12
 		// asdf comment
-		/*awef  oiwe
+		/**//*awef  oiwe
 		 ooiwje \*/ weoi
 		 weoi*/ printname = 13
-		print printname
+		print printname/*/**/*/
 	`)
 
 	expected := []*Token{
@@ -138,20 +154,14 @@ func TestSimple(x *testing.T) {
 		{NAME, "name", []byte("name"), 41, 5, 3, 5, 6},
 		{EQUALS, nil, []byte("="), 46, 5, 8, 5, 8},
 		{NUMBER, 12, []byte("12"), 47, 5, 9, 5, 10},
-		{NAME, "printname", []byte("printname"), 112, 9, 11, 9, 19},
-		{EQUALS, nil, []byte("="), 122, 9, 21, 9, 21},
-		{NUMBER, 13, []byte("13"), 124, 9, 23, 9, 24},
-		{PRINT, nil, []byte("print"), 129, 10, 3, 10, 7},
-		{NAME, "printname", []byte("printname"), 135, 10, 9, 10, 17},
+		{NAME, "printname", []byte("printname"), 116, 9, 11, 9, 19},
+		{EQUALS, nil, []byte("="), 126, 9, 21, 9, 21},
+		{NUMBER, 13, []byte("13"), 128, 9, 23, 9, 24},
+		{PRINT, nil, []byte("print"), 133, 10, 3, 10, 7},
+		{NAME, "printname", []byte("printname"), 139, 10, 9, 10, 17},
 	}
 
-	scan := func(lexer *Lexer) {
-		scanner, err := lexer.StreamScanner(stream.BufferedStream(bytes.NewBuffer(text)))
-		if err != nil {
-			t.Error(err)
-			t.Log(lexer.program.Serialize())
-		}
-
+	scan := func(scanner Scanner) {
 		i := 0
 		for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
 			if err != nil {
@@ -166,14 +176,33 @@ func TestSimple(x *testing.T) {
 	}
 
 	// // first do the test with the NFA
-	// t.AssertNil(lexer.CompileNFA())
-	// scan(lexer)
+	t.AssertNil(lexer.CompileNFA())
+	{
+		scanner, err := lexer.TextScanner(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		scan(scanner)
+	}
 
 	// then do the test with the DFA
 	lexer.program = nil
 	lexer.nfaMatches = nil
 	t.AssertNil(lexer.CompileDFA())
-	scan(lexer)
+	{
+		scanner, err := lexer.TextScanner(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		scan(scanner)
+	}
+	{
+		scanner, err := lexer.StreamScanner(stream.BufferedStream(bytes.NewBuffer(text)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		scan(scanner)
+	}
 }
 
 func TestPartialLexer(x *testing.T) {

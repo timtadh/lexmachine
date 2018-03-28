@@ -19,6 +19,14 @@ type StreamScanner struct {
 	matches map[int]int
 	scan    stream_machines.Scanner
 	Text    stream.Stream
+	buf     *StreamBuffer
+}
+
+func (s *StreamScanner) Buffer() Buffer {
+	if s.buf == nil {
+		panic(fmt.Errorf("Buffer called outside of an Action"))
+	}
+	return s.buf
 }
 
 // Next iterates through the string being scanned returning one token at a time
@@ -56,8 +64,11 @@ func (s *StreamScanner) Next() (tok interface{}, err error, eos bool) {
 		}
 		s.scan = scan
 
+		s.buf = streamBuffer(s.Text)
 		pattern := s.lexer.patterns[s.matches[match.PC]]
 		token, err = pattern.action(s, match)
+		s.buf.finalize()
+		s.buf = nil
 		if err != nil {
 			return nil, err, false
 		}

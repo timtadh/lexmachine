@@ -9,6 +9,7 @@ import (
 type Scanner interface {
 	Next() (tok interface{}, err error, eos bool)
 	Token(typ int, value interface{}, m *machines.Match) *Token
+	Buffer() Buffer
 }
 
 // Scanner tokenizes a byte string based on the patterns provided to the lexer
@@ -38,6 +39,14 @@ type TextScanner struct {
 	scan    machines.Scanner
 	Text    []byte
 	TC      int
+	buf     *SliceBuffer
+}
+
+func (s *TextScanner) Buffer() Buffer {
+	if s.buf == nil {
+		panic(fmt.Errorf("Buffer called outside of an Action"))
+	}
+	return s.buf
 }
 
 // Next iterates through the string being scanned returning one token at a time
@@ -76,8 +85,11 @@ func (s *TextScanner) Next() (tok interface{}, err error, eos bool) {
 		s.scan = scan
 		s.TC = tc
 
+		s.buf = sliceBuffer(s.Text, s.TC)
 		pattern := s.lexer.patterns[s.matches[match.PC]]
 		token, err = pattern.action(s, match)
+		s.TC = s.buf.finalize()
+		s.buf = nil
 		if err != nil {
 			return nil, err, false
 		}
