@@ -69,15 +69,13 @@ func (b *bufferedStream) Position() (tc, line, column int) {
 func (b *bufferedStream) Peek(i int) (char Character, has bool) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	if b.eos {
-		panic(fmt.Errorf("Call to Byte() after first call to Advance returned false"))
-	}
-	if i <= 0 {
-		panic(fmt.Errorf("Peek() must be called with positive lookahead got %d", i))
-	}
-	// the "cursor" technically starts at -1, this does that adjustment
 	if !b.started {
-		i--
+		panic(fmt.Errorf("Call to Peek() before first call to Advance"))
+	} else if b.eos {
+		panic(fmt.Errorf("Call to Peek() after first call to Advance returned false"))
+	}
+	if i < 0 {
+		panic(fmt.Errorf("Peek() must be called with lookahead >= 0 got %d", i))
 	}
 	if len(b.buf) >= i+1 {
 		return b.buf[i], true
@@ -124,8 +122,11 @@ func (b *bufferedStream) Advance(i int) bool {
 
 // advance moves the cursor forward by i
 func (b *bufferedStream) advance(i int) bool {
-	if i <= 0 {
-		panic(fmt.Errorf("Advance() must be called with positive move got %d", i))
+	if i == 0 {
+		return true
+	}
+	if i < 0 {
+		panic(fmt.Errorf("Advance() must be called with move >= 0 got %d", i))
 	}
 	// the "cursor" technically starts at -1, this does that adjustment
 	if !b.started {

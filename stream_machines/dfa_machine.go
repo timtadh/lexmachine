@@ -29,14 +29,7 @@ func DFALexerEngine(startState, errorState int, trans machines.DFATrans, accepti
 				return nil, nil, nil
 			}
 		}
-		startChar := text.Character()
-		buf = append(buf, startChar)
-		state = trans[state][startChar.Byte]
-		if match, has := accepting[state]; has {
-			matchID = match
-			matchLH = 0
-		}
-		for lh := 1; state != errorState; lh++ {
+		for lh := 0; state != errorState; lh++ {
 			c, has := text.Peek(lh)
 			if !has {
 				break

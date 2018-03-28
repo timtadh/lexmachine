@@ -69,7 +69,10 @@ func TestPeekTillW(t *testing.T) {
 	expected := "world"
 	var buf bytes.Buffer
 	s := BufferedStream(bytes.NewBufferString(text))
-	for i := 1; ; i++ {
+	if !s.Started() {
+		s.Advance(1)
+	}
+	for i := 0; ; i++ {
 		b, has := s.Peek(i)
 		if !has {
 			break
@@ -105,7 +108,10 @@ func TestPeekTillWThenL(t *testing.T) {
 	expected := "ld"
 	var buf bytes.Buffer
 	s := BufferedStream(bytes.NewBufferString(text))
-	for i := 1; ; i++ {
+	if !s.Started() {
+		s.Advance(1)
+	}
+	for i := 0; ; i++ {
 		b, has := s.Peek(i)
 		if !has {
 			break
@@ -154,7 +160,10 @@ func TestPeekTillWThenLThenEnd(t *testing.T) {
 	expected := ""
 	var buf bytes.Buffer
 	s := BufferedStream(bytes.NewBufferString(text))
-	for i := 1; ; i++ {
+	if !s.Started() {
+		s.Advance(1)
+	}
+	for i := 0; ; i++ {
 		b, has := s.Peek(i)
 		if !has {
 			break
@@ -203,7 +212,10 @@ func TestPeekThenReadFullStream(t *testing.T) {
 	var peek bytes.Buffer
 	var read bytes.Buffer
 	s := BufferedStream(bytes.NewBufferString(text))
-	for i := 1; ; i++ {
+	if !s.Started() {
+		s.Advance(1)
+	}
+	for i := 0; ; i++ {
 		b, has := s.Peek(i)
 		if !has {
 			break
@@ -214,12 +226,13 @@ func TestPeekThenReadFullStream(t *testing.T) {
 			}
 		}
 	}
-	for s.Advance(1) {
+	for !s.EOS() {
 		if err := read.WriteByte(s.Byte()); err != nil {
 			if err != nil {
 				t.Fatalf("err writing %v", err)
 			}
 		}
+		s.Advance(1)
 	}
 	if s.Err() != nil {
 		t.Fatalf("stream err %v", s.Err())
@@ -265,13 +278,16 @@ func TestLineColumns(t *testing.T) {
 	}
 	s := BufferedStream(bytes.NewBufferString(text))
 	// pre-peek everything just to futz with the interior state
-	for i := 1; ; i++ {
+	if !s.Started() {
+		s.Advance(1)
+	}
+	for i := 0; ; i++ {
 		_, has := s.Peek(i)
 		if !has {
 			break
 		}
 	}
-	for i := 0; s.Advance(1); i++ {
+	for i := 0; !s.EOS(); i++ {
 		tc, line, column := s.Position()
 		char := s.Byte()
 		if char != expected[i].char {
@@ -286,6 +302,7 @@ func TestLineColumns(t *testing.T) {
 		if column != expected[i].column {
 			t.Fatalf("got %v expected %v", column, expected[i].column)
 		}
+		s.Advance(1)
 	}
 }
 
