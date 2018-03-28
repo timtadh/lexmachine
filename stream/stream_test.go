@@ -10,7 +10,7 @@ func TestReadFullStream(t *testing.T) {
 	var buf bytes.Buffer
 	s := BufferedStream(bytes.NewBufferString(text))
 	for s.Advance(1) {
-		if err := buf.WriteByte(s.Byte()); err != nil {
+		if err := buf.WriteByte(s.Character().Byte); err != nil {
 			if err != nil {
 				t.Fatalf("err writing %v", err)
 			}
@@ -30,7 +30,7 @@ func TestReadEveryOther(t *testing.T) {
 	var buf bytes.Buffer
 	s := BufferedStream(bytes.NewBufferString(text))
 	for s.Advance(2) {
-		if err := buf.WriteByte(s.Byte()); err != nil {
+		if err := buf.WriteByte(s.Character().Byte); err != nil {
 			if err != nil {
 				t.Fatalf("err writing %v", err)
 			}
@@ -50,7 +50,7 @@ func TestReadEvery3(t *testing.T) {
 	var buf bytes.Buffer
 	s := BufferedStream(bytes.NewBufferString(text))
 	for s.Advance(3) {
-		if err := buf.WriteByte(s.Byte()); err != nil {
+		if err := buf.WriteByte(s.Character().Byte); err != nil {
 			if err != nil {
 				t.Fatalf("err writing %v", err)
 			}
@@ -82,11 +82,11 @@ func TestPeekTillW(t *testing.T) {
 			break
 		}
 	}
-	if s.Byte() != 'w' {
-		t.Fatalf("expected w got %v", s.Byte())
+	if s.Character().Byte != 'w' {
+		t.Fatalf("expected w got %v", s.Character().Byte)
 	}
 	for {
-		if err := buf.WriteByte(s.Byte()); err != nil {
+		if err := buf.WriteByte(s.Character().Byte); err != nil {
 			if err != nil {
 				t.Fatalf("err writing %v", err)
 			}
@@ -121,8 +121,8 @@ func TestPeekTillWThenL(t *testing.T) {
 			break
 		}
 	}
-	if s.Byte() != 'w' {
-		t.Fatalf("expected w got %v", s.Byte())
+	if s.Character().Byte != 'w' {
+		t.Fatalf("expected w got %v", s.Character().Byte)
 	}
 	for i := 1; ; i++ {
 		b, has := s.Peek(i)
@@ -134,11 +134,11 @@ func TestPeekTillWThenL(t *testing.T) {
 			break
 		}
 	}
-	if s.Byte() != 'l' {
-		t.Fatalf("expected l got %v", s.Byte())
+	if s.Character().Byte != 'l' {
+		t.Fatalf("expected l got %v", s.Character().Byte)
 	}
 	for {
-		if err := buf.WriteByte(s.Byte()); err != nil {
+		if err := buf.WriteByte(s.Character().Byte); err != nil {
 			if err != nil {
 				t.Fatalf("err writing %v", err)
 			}
@@ -173,8 +173,8 @@ func TestPeekTillWThenLThenEnd(t *testing.T) {
 			break
 		}
 	}
-	if s.Byte() != 'w' {
-		t.Fatalf("expected w got %v", s.Byte())
+	if s.Character().Byte != 'w' {
+		t.Fatalf("expected w got %v", s.Character().Byte)
 	}
 	for i := 1; ; i++ {
 		b, has := s.Peek(i)
@@ -186,8 +186,8 @@ func TestPeekTillWThenLThenEnd(t *testing.T) {
 			break
 		}
 	}
-	if s.Byte() != 'l' {
-		t.Fatalf("expected l got %v", s.Byte())
+	if s.Character().Byte != 'l' {
+		t.Fatalf("expected l got %v", s.Character().Byte)
 	}
 	for i := 1; ; i++ {
 		_, has := s.Peek(i)
@@ -227,7 +227,7 @@ func TestPeekThenReadFullStream(t *testing.T) {
 		}
 	}
 	for !s.EOS() {
-		if err := read.WriteByte(s.Byte()); err != nil {
+		if err := read.WriteByte(s.Character().Byte); err != nil {
 			if err != nil {
 				t.Fatalf("err writing %v", err)
 			}
@@ -288,19 +288,18 @@ func TestLineColumns(t *testing.T) {
 		}
 	}
 	for i := 0; !s.EOS(); i++ {
-		tc, line, column := s.Position()
-		char := s.Byte()
-		if char != expected[i].char {
-			t.Fatalf("got %v expected %v", char, expected[i].char)
+		char := s.Character()
+		if char.Byte != expected[i].char {
+			t.Fatalf("got %v expected %v", char.Byte, expected[i].char)
 		}
-		if tc != expected[i].tc {
-			t.Fatalf("got %v expected %v", tc, expected[i].tc)
+		if char.TC != expected[i].tc {
+			t.Fatalf("got %v expected %v", char.TC, expected[i].tc)
 		}
-		if line != expected[i].line {
-			t.Fatalf("got %v expected %v", line, expected[i].line)
+		if char.Line != expected[i].line {
+			t.Fatalf("got %v expected %v", char.Line, expected[i].line)
 		}
-		if column != expected[i].column {
-			t.Fatalf("got %v expected %v", column, expected[i].column)
+		if char.Column != expected[i].column {
+			t.Fatalf("got %v expected %v", char.Column, expected[i].column)
 		}
 		s.Advance(1)
 	}

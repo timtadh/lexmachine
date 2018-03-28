@@ -29,18 +29,6 @@ func BufferedStream(r io.Reader) Stream {
 	return b
 }
 
-// Byte returns the byte at the cursor
-func (b *bufferedStream) Byte() byte {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-	if !b.started {
-		panic(fmt.Errorf("Call to Byte() before first call to Advance"))
-	} else if b.eos {
-		panic(fmt.Errorf("Call to Byte() after first call to Advance returned false"))
-	}
-	return b.buf[0].Byte
-}
-
 // Character returns the character at the cursor
 func (b *bufferedStream) Character() Character {
 	b.lock.Lock()
@@ -51,18 +39,6 @@ func (b *bufferedStream) Character() Character {
 		panic(fmt.Errorf("Call to Byte() after first call to Advance returned false"))
 	}
 	return b.buf[0]
-}
-
-// Position gives the current position of the cursor
-func (b *bufferedStream) Position() (tc, line, column int) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-	if !b.started {
-		panic(fmt.Errorf("Call to Position() before first call to Advance"))
-	} else if b.eos {
-		panic(fmt.Errorf("Call to Position() after first call to Advance returned false"))
-	}
-	return b.buf[0].TC, b.buf[0].Line, b.buf[0].Column
 }
 
 // Peek gets the character at lookahead i

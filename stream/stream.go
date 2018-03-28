@@ -8,7 +8,7 @@ import "fmt"
 //
 //     s := BufferedStream(reader)
 //     for s.Advance(1) {
-//         fmt.Println(s.Byte())
+//         fmt.Println(s.Character().Byte)
 //     }
 //     if s.Err() != nil {
 //         return s.Err()
@@ -16,20 +16,10 @@ import "fmt"
 //
 type Stream interface {
 
-	// Byte returns the current byte in the stream. This method will panic if
-	// Advance has not been called before this method or Advance has returned
-	// false.
-	Byte() byte
-
 	// Character returns the current byte in the stream. This method will panic
 	// if Advance has not been called before this method or Advance has
 	// returned false.
 	Character() Character
-
-	// Position returns the position of the current byte: text counter, line,
-	// and column. This method will panic if Advance has not been called before
-	// this method or Advance has returned false.
-	Position() (tc, line, column int)
 
 	// Peek returns byte at the current cursor + the lookahead in the stream if
 	// one exists. If lookahead == 0, it returns the same character Character()
