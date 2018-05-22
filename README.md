@@ -492,7 +492,7 @@ two forms of character ranges:
 These two forms may be combined:
 
 For instance, `[a-zA-Z123]` matches the strings {`a`, `b`, ..., `z`, `A`, `B`,
-... `Z`, `0`, `2`, `3`}
+... `Z`, `1`, `2`, `3`}
 
 #### Inverted Character Classes
 
