@@ -54,11 +54,11 @@ func (i Inst) String() (s string) {
 func (i Inst) Serialize() (s string) {
 	switch i.Op {
 	case CHAR:
-		s = fmt.Sprintf("CHAR   %d, %d", i.X, i.Y)
+		s = fmt.Sprintf("CHAR %d %d", i.X, i.Y)
 	case SPLIT:
-		s = fmt.Sprintf("SPLIT  %v, %v", i.X, i.Y)
+		s = fmt.Sprintf("SPLIT %v %v", i.X, i.Y)
 	case JMP:
-		s = fmt.Sprintf("JMP    %v", i.X)
+		s = fmt.Sprintf("JMP %v", i.X)
 	case MATCH:
 		s = "MATCH"
 	}
@@ -86,7 +86,7 @@ func (is Slice) String() (s string) {
 func (is Slice) Serialize() (s string) {
 	lines := make([]string, 0, len(is))
 	for i, inst := range is {
-		lines = append(lines, fmt.Sprintf("%3d %s", i, inst.Serialize()))
+		lines = append(lines, fmt.Sprintf("%d %s", i, inst.Serialize()))
 	}
 	return strings.Join(lines, "\n")
 }
