@@ -12,7 +12,7 @@ var header = `
 def tokenize(input):
     return _Scanner(input).tokenize()
 
-class Token(object):
+class Match(object):
 
     def __init__(self, match_id, lexeme):
         self.match_id = match_id
@@ -22,7 +22,7 @@ class Token(object):
         return self.__str__()
 
     def __str__(self):
-        return "Token({}, {})".format(self.match_id, repr(self.lexeme))
+        return "Match({}, {})".format(self.match_id, repr(self.lexeme))
 
 class _Scanner(object):
 
@@ -48,7 +48,7 @@ class _Scanner(object):
         return next_state
 
     def match(self, match_id):
-        self.tokens.append(Token(match_id, ''.join(self.buf)))
+        self.tokens.append(Match(match_id, ''.join(self.buf)))
         self.buf = list()
         if self.idx < len(self.input):
             return self.start()
