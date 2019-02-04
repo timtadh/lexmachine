@@ -35,7 +35,6 @@ class _Scanner(object):
     def tokenize(self):
         state = self.start()
         while state != None:
-            print self.idx, self.buf, state
             state = state()
         if self.idx != len(self.input):
             self.eosError()
