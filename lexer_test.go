@@ -1,6 +1,7 @@
 package lexmachine
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/timtadh/data-structures/test"
 	"github.com/timtadh/lexmachine/machines"
+	"github.com/timtadh/lexmachine/stream"
 )
 
 func TestSimple(x *testing.T) {
@@ -22,25 +24,25 @@ func TestSimple(x *testing.T) {
 
 	lexer.Add(
 		[]byte("print"),
-		func(scan *Scanner, match *machines.Match) (interface{}, error) {
+		func(scan Scanner, match *machines.Match) (interface{}, error) {
 			return scan.Token(PRINT, nil, match), nil
 		},
 	)
 	lexer.Add(
 		[]byte("([a-z]|[A-Z])([a-z]|[A-Z]|[0-9]|_)*"),
-		func(scan *Scanner, match *machines.Match) (interface{}, error) {
+		func(scan Scanner, match *machines.Match) (interface{}, error) {
 			return scan.Token(NAME, string(match.Bytes), match), nil
 		},
 	)
 	lexer.Add(
 		[]byte("="),
-		func(scan *Scanner, match *machines.Match) (interface{}, error) {
+		func(scan Scanner, match *machines.Match) (interface{}, error) {
 			return scan.Token(EQUALS, nil, match), nil
 		},
 	)
 	lexer.Add(
 		[]byte("[0-9]+"),
-		func(scan *Scanner, match *machines.Match) (interface{}, error) {
+		func(scan Scanner, match *machines.Match) (interface{}, error) {
 			i, err := strconv.Atoi(string(match.Bytes))
 			if err != nil {
 				return nil, err
@@ -50,35 +52,82 @@ func TestSimple(x *testing.T) {
 	)
 	lexer.Add(
 		[]byte("( |\t|\n)"),
-		func(scan *Scanner, match *machines.Match) (interface{}, error) {
+		func(scan Scanner, match *machines.Match) (interface{}, error) {
 			// skip white space
 			return nil, nil
 		},
 	)
 	lexer.Add(
 		[]byte("//[^\n]*\n"),
-		func(scan *Scanner, match *machines.Match) (interface{}, error) {
+		func(scan Scanner, match *machines.Match) (interface{}, error) {
 			// skip white space
 			return nil, nil
 		},
 	)
 	lexer.Add(
 		[]byte("/\\*"),
-		func(scan *Scanner, match *machines.Match) (interface{}, error) {
-			for tc := scan.TC; tc < len(scan.Text); tc++ {
-				if scan.Text[tc] == '\\' {
+		//func(s Scanner, match *machines.Match) (interface{}, error) {
+		//	scan := s.(*TextScanner)
+		//	for tc := scan.TC; tc < len(scan.Text); tc++ {
+		//		if scan.Text[tc] == '\\' {
+		//			// the next character is skipped
+		//			tc++
+		//		} else if scan.Text[tc] == '*' && tc+1 < len(scan.Text) {
+		//			if scan.Text[tc+1] == '/' {
+		//				scan.TC = tc + 2
+		//				return nil, nil
+		//			}
+		//		}
+		//	}
+		//	return nil,
+		//		fmt.Errorf("unclosed comment starting at %d, (%d, %d)",
+		//			match.TC, match.StartLine, match.StartColumn)
+		//},
+		func(s Scanner, match *machines.Match) (interface{}, error) {
+			text := s.Buffer()
+			buf := make([]byte, 0, 10)
+			buf = append(buf, match.Bytes...)
+			open := 1
+			tc := text.TC()
+			for ; open > 0; tc++ {
+				if !text.HasByte(tc) {
+					return nil,
+						fmt.Errorf("unclosed comment starting at %d, (%d, %d) containing %q",
+							match.TC, match.StartLine, match.StartColumn, buf)
+				}
+				char := text.Byte(tc)
+				buf = append(buf, char)
+				if char == '\\' {
 					// the next character is skipped
 					tc++
-				} else if scan.Text[tc] == '*' && tc+1 < len(scan.Text) {
-					if scan.Text[tc+1] == '/' {
-						scan.TC = tc + 2
-						return nil, nil
+					if text.HasByte(tc) {
+						buf = append(buf, text.Byte(tc))
+					}
+				} else if char == '/' {
+					if text.HasByte(tc + 1) {
+						next := text.Byte(tc + 1)
+						if next == '*' {
+							buf = append(buf, next)
+							tc++
+							open++
+							continue
+						}
+					}
+				} else if char == '*' {
+					if text.HasByte(tc + 1) {
+						next := text.Byte(tc + 1)
+						if next == '/' {
+							buf = append(buf, next)
+							tc++
+							open--
+							continue
+						}
 					}
 				}
 			}
-			return nil,
-				fmt.Errorf("unclosed comment starting at %d, (%d, %d)",
-					match.TC, match.StartLine, match.StartColumn)
+			fmt.Printf("%q\n", buf)
+			text.SetTC(tc)
+			return nil, nil
 		},
 	)
 
@@ -88,10 +137,10 @@ func TestSimple(x *testing.T) {
 		print fred
 		name =12
 		// asdf comment
-		/*awef  oiwe
+		/**//*awef  oiwe
 		 ooiwje \*/ weoi
 		 weoi*/ printname = 13
-		print printname
+		print printname/*/**/*/
 	`)
 
 	expected := []*Token{
@@ -105,20 +154,14 @@ func TestSimple(x *testing.T) {
 		{NAME, "name", []byte("name"), 41, 5, 3, 5, 6},
 		{EQUALS, nil, []byte("="), 46, 5, 8, 5, 8},
 		{NUMBER, 12, []byte("12"), 47, 5, 9, 5, 10},
-		{NAME, "printname", []byte("printname"), 112, 9, 11, 9, 19},
-		{EQUALS, nil, []byte("="), 122, 9, 21, 9, 21},
-		{NUMBER, 13, []byte("13"), 124, 9, 23, 9, 24},
-		{PRINT, nil, []byte("print"), 129, 10, 3, 10, 7},
-		{NAME, "printname", []byte("printname"), 135, 10, 9, 10, 17},
+		{NAME, "printname", []byte("printname"), 116, 9, 11, 9, 19},
+		{EQUALS, nil, []byte("="), 126, 9, 21, 9, 21},
+		{NUMBER, 13, []byte("13"), 128, 9, 23, 9, 24},
+		{PRINT, nil, []byte("print"), 133, 10, 3, 10, 7},
+		{NAME, "printname", []byte("printname"), 139, 10, 9, 10, 17},
 	}
 
-	scan := func(lexer *Lexer) {
-		scanner, err := lexer.Scanner(text)
-		if err != nil {
-			t.Error(err)
-			t.Log(lexer.program.Serialize())
-		}
-
+	scan := func(scanner Scanner) {
 		i := 0
 		for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
 			if err != nil {
@@ -132,15 +175,34 @@ func TestSimple(x *testing.T) {
 		}
 	}
 
-	// first do the test with the NFA
+	// // first do the test with the NFA
 	t.AssertNil(lexer.CompileNFA())
-	scan(lexer)
+	{
+		scanner, err := lexer.TextScanner(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		scan(scanner)
+	}
 
 	// then do the test with the DFA
 	lexer.program = nil
 	lexer.nfaMatches = nil
 	t.AssertNil(lexer.CompileDFA())
-	scan(lexer)
+	{
+		scanner, err := lexer.TextScanner(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		scan(scanner)
+	}
+	{
+		scanner, err := lexer.StreamScanner(stream.BufferedStream(bytes.NewBuffer(text)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		scan(scanner)
+	}
 }
 
 func TestPartialLexer(x *testing.T) {
@@ -216,7 +278,7 @@ func TestPartialLexer(x *testing.T) {
 	}
 
 	getToken := func(tokenType int) Action {
-		return func(s *Scanner, m *machines.Match) (interface{}, error) {
+		return func(s Scanner, m *machines.Match) (interface{}, error) {
 			return s.Token(tokenType, string(m.Bytes), m), nil
 		}
 	}
@@ -229,7 +291,7 @@ func TestPartialLexer(x *testing.T) {
 	lexer.Add([]byte("[A-Za-z$][A-Za-z0-9$]+"), getToken(tokmap["IDENT"]))
 	lexer.Add([]byte(">=|<=|=|>|<|\\|\\||&&"), getToken(tokmap["OP"]))
 	scan := func(lexer *Lexer) {
-		scanner, err := lexer.Scanner([]byte(text))
+		scanner, err := lexer.TextScanner([]byte(text))
 		t.AssertNil(err)
 		i := 0
 		for tk, err, eof := scanner.Next(); !eof; tk, err, eof = scanner.Next() {
@@ -256,7 +318,7 @@ func TestPartialLexer(x *testing.T) {
 
 func TestRegression(t *testing.T) {
 	token := func(name string) Action {
-		return func(s *Scanner, m *machines.Match) (interface{}, error) {
+		return func(s Scanner, m *machines.Match) (interface{}, error) {
 			return fmt.Sprintf("%v:%q", name, string(m.Bytes)), nil
 		}
 	}
@@ -278,7 +340,7 @@ func TestRegression(t *testing.T) {
 
 	runTest := func(lexer *Lexer) {
 		for _, test := range tests {
-			scanner, err := lexer.Scanner([]byte(test.text))
+			scanner, err := lexer.TextScanner([]byte(test.text))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -356,11 +418,11 @@ ddns-update-style none;
 	newLexer := func() *Lexer {
 		lex := NewLexer()
 
-		skip := func(*Scanner, *machines.Match) (interface{}, error) {
+		skip := func(Scanner, *machines.Match) (interface{}, error) {
 			return nil, nil
 		}
 		token := func(name string) Action {
-			return func(s *Scanner, m *machines.Match) (interface{}, error) {
+			return func(s Scanner, m *machines.Match) (interface{}, error) {
 				return s.Token(tokenIds[name], string(m.Bytes), m), nil
 			}
 		}
@@ -376,7 +438,7 @@ ddns-update-style none;
 	}
 
 	runTest := func(lexer *Lexer) {
-		scanner, err := lexer.Scanner([]byte(text))
+		scanner, err := lexer.TextScanner([]byte(text))
 		if err != nil {
 			return
 		}
@@ -425,11 +487,11 @@ func TestPythonStrings(t *testing.T) {
 	for i, tok := range tokens {
 		tokenIds[tok] = i
 	}
-	skip := func(*Scanner, *machines.Match) (interface{}, error) {
+	skip := func(Scanner, *machines.Match) (interface{}, error) {
 		return nil, nil
 	}
 	token := func(name string) Action {
-		return func(s *Scanner, m *machines.Match) (interface{}, error) {
+		return func(s Scanner, m *machines.Match) (interface{}, error) {
 			return s.Token(tokenIds[name], string(m.Bytes), m), nil
 		}
 	}
@@ -468,7 +530,7 @@ func TestPythonStrings(t *testing.T) {
 	runTest := func(lexer *Lexer) {
 		for _, test := range tests {
 			fmt.Printf("test %q\n", test.text)
-			scanner, err := lexer.Scanner([]byte(test.text))
+			scanner, err := lexer.TextScanner([]byte(test.text))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -516,7 +578,7 @@ func TestPythonStrings(t *testing.T) {
 }
 
 func TestNoEmptyStrings(t *testing.T) {
-	skip := func(*Scanner, *machines.Match) (interface{}, error) {
+	skip := func(Scanner, *machines.Match) (interface{}, error) {
 		return nil, nil
 	}
 	lexer := NewLexer()
