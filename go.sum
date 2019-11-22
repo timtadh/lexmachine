@@ -1,0 +1,4 @@
+github.com/timtadh/data-structures v0.5.2 h1:yGrL+5Tf5mwRDPGnKwLeLOvfmoDsuKiMRmpETgGq+4w=
+github.com/timtadh/data-structures v0.5.2/go.mod h1:9R4XODhJ8JdWFEI8P/HJKqxuJctfBQw6fDibMQny2oU=
+github.com/timtadh/getopt v1.0.0 h1:FrZd8h2izZAjmivemGkCIOKcdIoIhQLVjpsa0/ZvLik=
+github.com/timtadh/getopt v1.0.0/go.mod h1:L3EL6YN2G0eIAhYBo9b7SB9d/kEQmdnwthIlMJfj210=
