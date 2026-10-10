@@ -118,6 +118,26 @@ type Scanner struct {
 	eColumn int
 }
 
+// StartLine returns the start line of the last scanned token or error.
+func (s *Scanner) StartLine() int {
+	return s.sLine
+}
+
+// StartColumn returns the start column of the last scanned token or error.
+func (s *Scanner) StartColumn() int {
+	return s.sColumn
+}
+
+// EndLine returns the end line of the last scanned token or error.
+func (s *Scanner) EndLine() int {
+	return s.eLine
+}
+
+// EndColumn returns the end column of the last scanned token or error.
+func (s *Scanner) EndColumn() int {
+	return s.eColumn
+}
+
 // Next iterates through the string being scanned returning one token at a time
 // until either an error is encountered or the end of the string is reached.
 // The token is returned by the tok value. An error is indicated by err.
@@ -147,7 +167,21 @@ func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
 		if scan == nil {
 			return nil, nil, true
 		} else if err != nil {
-			return nil, err, false
+			s.scan = scan
+			s.pTC = s.TC
+			if ui, is := err.(*machines.UnconsumedInput); is {
+				s.sLine = ui.StartLine
+				s.sColumn = ui.StartColumn
+				s.eLine = ui.FailLine
+				s.eColumn = ui.FailColumn
+			} else if ese, is := err.(*machines.EmptyMatchError); is {
+				s.sLine = ese.Line
+				s.sColumn = ese.Column
+				s.eLine = ese.Line
+				s.eColumn = ese.Column
+			}
+			errToken := s.Token(-1, err, nil)
+			return errToken, err, false
 		} else if match == nil {
 			return nil, fmt.Errorf("No match but no error"), false
 		}
@@ -162,14 +196,57 @@ func (s *Scanner) Next() (tok interface{}, err error, eos bool) {
 		pattern := s.lexer.patterns[s.matches[match.PC]]
 		token, err = pattern.action(s, match)
 		if err != nil {
-			return nil, err, false
+			if token == nil {
+				token = s.Token(-1, err, match)
+			}
+			return token, err, false
 		}
 	}
 	return token, nil, false
 }
 
-// Token is a helper function for constructing a Token type inside of a Action.
+// Token is a helper function for constructing a Token type inside of an Action
+// or when handling an error token. If m is nil, positional metadata from the
+// error or scanner is used.
 func (s *Scanner) Token(typ int, value interface{}, m *machines.Match) *Token {
+	if m == nil {
+		var lexeme []byte
+		tc := s.TC
+		sLine := s.sLine
+		sCol := s.sColumn
+		eLine := s.eLine
+		eCol := s.eColumn
+		if err, ok := value.(error); ok {
+			if ui, is := err.(*machines.UnconsumedInput); is {
+				tc = ui.StartTC
+				sLine = ui.StartLine
+				sCol = ui.StartColumn
+				eLine = ui.FailLine
+				eCol = ui.FailColumn
+				stc := ui.StartTC
+				etc := ui.FailTC
+				if stc >= 0 && stc <= len(s.Text) && etc >= stc && etc <= len(s.Text) {
+					lexeme = s.Text[stc:etc]
+				}
+			} else if ese, is := err.(*machines.EmptyMatchError); is {
+				tc = ese.TC
+				sLine = ese.Line
+				sCol = ese.Column
+				eLine = ese.Line
+				eCol = ese.Column
+			}
+		}
+		return &Token{
+			Type:        typ,
+			Value:       value,
+			Lexeme:      lexeme,
+			TC:          tc,
+			StartLine:   sLine,
+			StartColumn: sCol,
+			EndLine:     eLine,
+			EndColumn:   eCol,
+		}
+	}
 	return &Token{
 		Type:        typ,
 		Value:       value,
@@ -180,6 +257,11 @@ func (s *Scanner) Token(typ int, value interface{}, m *machines.Match) *Token {
 		EndLine:     m.EndLine,
 		EndColumn:   m.EndColumn,
 	}
+}
+
+// ErrorToken is a helper function for constructing a Token representing a scan error.
+func (s *Scanner) ErrorToken(typ int, err error) *Token {
+	return s.Token(typ, err, nil)
 }
 
 // NewLexer constructs a new lexer object.

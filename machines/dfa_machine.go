@@ -127,17 +127,29 @@ func DFALexerEngine(startState, errorState int, trans DFATrans, accepting DFAAcc
 			if matchTC == -1 {
 				matchTC = 0
 			}
-			startLC := lineCols[startTC]
-			etc := tc
-			var endLC lineCol
-			if etc >= len(lineCols) {
-				endLC = lineCols[len(lineCols)-1]
+			var startLC, endLC lineCol
+			if len(lineCols) > 0 {
+				if startTC < len(lineCols) {
+					startLC = lineCols[startTC]
+				} else {
+					startLC = lineCols[len(lineCols)-1]
+				}
+				endIdx := tc - 1
+				if endIdx < startTC {
+					endIdx = startTC
+				}
+				if endIdx < len(lineCols) {
+					endLC = lineCols[endIdx]
+				} else {
+					endLC = lineCols[len(lineCols)-1]
+				}
 			} else {
-				endLC = lineCols[etc]
+				startLC = lineCol{line: 1, col: 1}
+				endLC = lineCol{line: 1, col: 1}
 			}
 			err := &UnconsumedInput{
 				StartTC:     startTC,
-				FailTC:      etc,
+				FailTC:      tc,
 				StartLine:   startLC.line,
 				StartColumn: startLC.col,
 				FailLine:    endLC.line,

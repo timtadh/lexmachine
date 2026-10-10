@@ -232,7 +232,11 @@ func LexerEngine(program inst.Slice, text []byte) Scanner {
 				matchTC = 0
 			}
 			sline, scol := computeLineCol(text, 0, startTC, 1, 1)
-			fline, fcol := computeLineCol(text, 0, tc, 1, 1)
+			endTC := tc - 1
+			if endTC < startTC {
+				endTC = startTC
+			}
+			fline, fcol := computeLineCol(text, 0, endTC, 1, 1)
 			err := &UnconsumedInput{
 				StartTC:     startTC,
 				FailTC:      tc,
